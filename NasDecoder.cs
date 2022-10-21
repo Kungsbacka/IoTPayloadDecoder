@@ -146,26 +146,35 @@ namespace IoTPayloadDecoder
         private static dynamic DecodeStatusPacket(PayloadParser parser, bool compact)
         {
             dynamic packet = new ExpandoObject();
+
             packet.packet_type = WrapAsValue("status_packet", compact);
             uint epochRaw = parser.GetUInt32(peek: true);
             packet.device_unix_epoch = WrapAsValueAndRaw(parser.GetUnixEpoch(), epochRaw, compact);
+
             packet.status_field = new ExpandoObject();
             packet.status_field.dali_error_external = WrapAsValue(parser.GetBit(), compact);
             packet.status_field.dali_error_connection = WrapAsValue(parser.GetBit(), compact);
             packet.status_field.ldr_state = WrapAsValue(parser.GetBit(), compact);
+
             parser.GetBit(); // throw away bit
+
             packet.status_field.dig_state = WrapAsValue(parser.GetBit(), compact);
             packet.status_field.hardware_error = WrapAsValue(parser.GetBit(), compact);
             packet.status_field.firmware_error = WrapAsValue(parser.GetBit(), compact);
             packet.status_field.internal_relay_state = WrapAsValue(parser.GetBit(), compact);
+
             packet.downlink_rssi = WrapAsValueAndUnit(parser.GetUInt8(), "dBm", compact);
             packet.downlink_snr = WrapAsValueAndUnit(parser.GetInt8(), "dB", compact);
             packet.mcu_temperature = WrapAsValueAndUnit(parser.GetInt8(), "\u00B0C", compact);
-            packet.analog_interfaces = new ExpandoObject();
+
             bool thr_sent = parser.GetBit();
             bool ldr_sent = parser.GetBit();
+
+            packet.analog_interfaces = new ExpandoObject();
             packet.analog_interfaces.open_drain_out_state = WrapAsValue(parser.GetBit(), compact);
+
             parser.GetBit(); // throw away bit
+
             packet.analog_interfaces.voltage_alert_in_24h = WrapAsValue(parser.GetBit(), compact);
             packet.analog_interfaces.lamp_error_alert_in_24h = WrapAsValue(parser.GetBit(), compact);
             packet.analog_interfaces.power_alert_in_24h = WrapAsValue(parser.GetBit(), compact);
@@ -175,6 +184,7 @@ namespace IoTPayloadDecoder
             {
                 packet.thr_value = WrapAsValue(parser.GetUInt8(), compact);
             }
+
             if (ldr_sent)
             {
                 packet.ldr_value = WrapAsValue(parser.GetUInt8(), compact);
@@ -195,7 +205,6 @@ namespace IoTPayloadDecoder
         private static dynamic DecodeProfile(PayloadParser parser, bool compact)
         {
             dynamic profile = new ExpandoObject();
-
             byte id = parser.GetUInt8();
             byte version = parser.GetUInt8();
             byte address = parser.GetUInt8();
@@ -204,17 +213,16 @@ namespace IoTPayloadDecoder
             profile.profile_override = WrapAsValueAndRaw(GetProfileOverrideReason(version), version, compact);
             string daliAddress = ConvertToDaliAddress(address);
             profile.dali_address_short = WrapAsValueAndRaw(daliAddress, address, compact);
-
             byte active_days = parser.GetUInt8(peek: true);
             List<string> days = new();
-            if (parser.GetBit()) { days.Add("holiday"); }
-            if (parser.GetBit()) { days.Add("mon"); }
-            if (parser.GetBit()) { days.Add("tue"); }
-            if (parser.GetBit()) { days.Add("wed"); }
-            if (parser.GetBit()) { days.Add("thu"); }
-            if (parser.GetBit()) { days.Add("fri"); }
-            if (parser.GetBit()) { days.Add("sat"); }
-            if (parser.GetBit()) { days.Add("sun"); }
+            if (parser.GetBit()) days.Add("holiday");
+            if (parser.GetBit()) days.Add("mon");
+            if (parser.GetBit()) days.Add("tue");
+            if (parser.GetBit()) days.Add("wed");
+            if (parser.GetBit()) days.Add("thu");
+            if (parser.GetBit()) days.Add("fri");
+            if (parser.GetBit()) days.Add("sat");
+            if (parser.GetBit()) days.Add("sun");
             profile.days_active = WrapAsValueAndRaw(days, active_days, compact);
             return profile;
         }
@@ -237,39 +245,15 @@ namespace IoTPayloadDecoder
         private static IEnumerable<string> GetResetReason(byte resetReason)
         {
             List<string> reason = new();
-            PayloadParser parser = new PayloadParser(resetReason);
-            if (parser.GetBit())
-            {
-                reason.Add("reset_0");
-            }
-            if (parser.GetBit())
-            {
-                reason.Add("watchdog_reset");
-            }
-            if (parser.GetBit())
-            {
-                reason.Add("soft_reset");
-            }
-            if (parser.GetBit())
-            {
-                reason.Add("reset_3");
-            }
-            if (parser.GetBit())
-            {
-                reason.Add("reset_4");
-            }
-            if (parser.GetBit())
-            {
-                reason.Add("reset_5");
-            }
-            if (parser.GetBit())
-            {
-                reason.Add("reset_6");
-            }
-            if (parser.GetBit())
-            {
-                reason.Add("reset_7");
-            }
+            PayloadParser parser = new(resetReason);
+            if (parser.GetBit()) reason.Add("reset_0");
+            if (parser.GetBit()) reason.Add("watchdog_reset");
+            if (parser.GetBit()) reason.Add("soft_reset");
+            if (parser.GetBit()) reason.Add("reset_3");
+            if (parser.GetBit()) reason.Add("reset_4");
+            if (parser.GetBit()) reason.Add("reset_5");
+            if (parser.GetBit()) reason.Add("reset_6");
+            if (parser.GetBit()) reason.Add("reset_7");
             return reason;
         }
 
@@ -343,30 +327,12 @@ namespace IoTPayloadDecoder
             List<string> features = new();
             PayloadParser featuresParser = new(optionalFeatures);
             featuresParser.GetBit();
-            if (featuresParser.GetBit())
-            {
-                features.Add("thr");
-            }
-            if (featuresParser.GetBit())
-            {
-                features.Add("dig");
-            }
-            if (featuresParser.GetBit())
-            {
-                features.Add("ldr");
-            }
-            if (featuresParser.GetBit())
-            {
-                features.Add("open_drain_out");
-            }
-            if (featuresParser.GetBit())
-            {
-                features.Add("metering");
-            }
-            if (featuresParser.GetBit())
-            {
-                features.Add("custom_request");
-            }
+            if (featuresParser.GetBit()) features.Add("thr");
+            if (featuresParser.GetBit()) features.Add("dig");
+            if (featuresParser.GetBit()) features.Add("ldr");
+            if (featuresParser.GetBit()) features.Add("open_drain_out");
+            if (featuresParser.GetBit()) features.Add("metering");
+            if (featuresParser.GetBit()) features.Add("custom_request");
             return features;
         }
 
