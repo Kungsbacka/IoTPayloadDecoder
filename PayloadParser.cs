@@ -2,7 +2,7 @@
 
 namespace IoTPayloadDecoder
 {
-    public class PayloadParser
+    internal class PayloadParser
     {
         public int RemainingBits
         {
@@ -157,6 +157,17 @@ namespace IoTPayloadDecoder
             bytes[0] = GetUInt8();
             return BitConverter.ToUInt32(new ReadOnlySpan<byte>(bytes));
         }
+
+        public int GetInt32BE()
+        {
+            byte[] bytes = new byte[4];
+            bytes[3] = GetUInt8();
+            bytes[2] = GetUInt8();
+            bytes[1] = GetUInt8();
+            bytes[0] = GetUInt8();
+            return BitConverter.ToInt32(new ReadOnlySpan<byte>(bytes));
+        }
+
         public ulong GetUInt64()
         {
             MoveToNextWholeByte();

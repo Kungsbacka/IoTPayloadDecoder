@@ -2,7 +2,7 @@
 
 namespace IoTPayloadDecoder
 {
-    internal static class ElsysDecoder
+    public static class ElsysDecoder
     {
         const byte TYPE_TEMP = 0x01; // Temp 2 bytes -3276.8°C -->3276.7°C
         const byte TYPE_RH = 0x02; // Humidity 1 byte  0-100%
@@ -26,7 +26,7 @@ namespace IoTPayloadDecoder
         const byte TYPE_PRESSURE = 0x14; // 4 byte pressure data (hPa)
         const byte TYPE_SOUND = 0x15; // 2 byte sound data (peak/avg)
         const byte TYPE_PULSE2 = 0x16; // 2 bytes 0-->0xFFFF
-        const byte TYPE_PULSE2_ABS = 0x17; //4 bytes no 0->0xFFFFFFFF
+        const byte TYPE_PULSE2_ABS = 0x17; // 4 bytes no 0->0xFFFFFFFF
         const byte TYPE_ANALOG2 = 0x18; // 2 bytes voltage in mV
         const byte TYPE_EXT_TEMP2 = 0x19; // 2 bytes -3276.5C-->3276.5C
         const byte TYPE_EXT_DIGITAL2 = 0x1A; // 1 bytes value 1 or 0
@@ -69,7 +69,7 @@ namespace IoTPayloadDecoder
                     case TYPE_ANALOG1:
                         result.analog1 = parser.GetUInt16BE();
                         break;
-                    case TYPE_GPS: // Not big endian! (See reference implementation)
+                    case TYPE_GPS: // Everything is big endian except GPS (See reference implementation)
                         result.lat = parser.GetInt24() / 10000d;
                         result["long"] = parser.GetInt24() / 10000d;
                         break;
@@ -77,6 +77,9 @@ namespace IoTPayloadDecoder
                         result.pulse1 = parser.GetUInt16BE();
                         break;
                     case TYPE_PULSE1_ABS:
+                        // The comment in the reference implementation say that this is a unsigned int,
+                        // but the code returns an signed int. This decoder follows the comment and returns
+                        // an unsigned int.
                         result.pulseAbs = parser.GetUInt32BE();
                         break;
                     case TYPE_EXT_TEMP1:
@@ -111,7 +114,11 @@ namespace IoTPayloadDecoder
                         result.grideye = grideye;
                         break;
                     case TYPE_PRESSURE:
-                        result.pressure = parser.GetUInt32BE() / 1000d;
+                        // Reference implementation will return a signed value. I don't know if a
+                        // negative pressure is possible, but sometimes the sensors will return
+                        // 0xffffffff and it's a little clearer that something is wrong if we
+                        // return -0.001 instead of 4294967.295.
+                        result.pressure = parser.GetInt32BE() / 1000d;
                         break;
                     case TYPE_SOUND:
                         result.soundPeak = parser.GetUInt8();
@@ -121,6 +128,9 @@ namespace IoTPayloadDecoder
                         result.pulse2 = parser.GetUInt16BE();
                         break;
                     case TYPE_PULSE2_ABS:
+                        // The comment in the reference implementation say that this is a unsigned int,
+                        // but the code returns an signed int. This decoder follows the comment and returns
+                        // an unsigned int.
                         result.pulseAbs2 = parser.GetUInt32BE();
                         break;
                     case TYPE_ANALOG2:

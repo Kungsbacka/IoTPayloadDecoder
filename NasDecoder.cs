@@ -2,7 +2,7 @@
 
 namespace IoTPayloadDecoder
 {
-    internal static class NasDecoder
+    public static class NasDecoder
     {
         public static dynamic Decode(string payloadString, int port, bool compact = false)
         {
