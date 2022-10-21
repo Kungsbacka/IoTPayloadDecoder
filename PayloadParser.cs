@@ -236,7 +236,7 @@ namespace IoTPayloadDecoder
         {
             if (_bytePos * 8 + _bitOffset + bitsRequested > _bitCount)
             {
-                throw new InvalidOperationException("Not enough bits left to fulfill request.");
+                throw new InvalidOperationException("Not enough bits left to fullfill request.");
             }
         }
     }
