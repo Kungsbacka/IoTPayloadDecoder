@@ -1,16 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Dynamic;
+using System.Linq.Expressions;
+using System.Xml.Schema;
 
-namespace IoTPayloadDecoder
+namespace IoTPayloadDecoder.Decoders.Elsys
 {
-    public static class ElsysDecoder
+    internal class GenericDecoder : IPayloadDecoder
     {
         const byte TYPE_TEMP = 0x01; // Temp 2 bytes -3276.8°C -->3276.7°C
         const byte TYPE_RH = 0x02; // Humidity 1 byte  0-100%
         const byte TYPE_ACC = 0x03; // Acceleration 3 bytes X,Y,Z -128 --> 127 +/-63=1G
         const byte TYPE_LIGHT = 0x04; // Light 2 bytes 0-->65535 Lux
-        const byte TYPE_MOTION = 0x05; // No of motion 1 byte  0-255
+        const byte TYPE_MOTION = 0x05; // No of motion 1 byte 0-255
         const byte TYPE_CO2 = 0x06; // Co2 2 bytes 0-65535 ppm
         const byte TYPE_VDD = 0x07; // VDD 2 byte 0-65535mV
         const byte TYPE_ANALOG1 = 0x08; // VDD 2 byte 0-65535mV
@@ -36,75 +37,81 @@ namespace IoTPayloadDecoder
         const byte TYPE_TVOC = 0x1C; // 2 bytes (ppb)
         const byte TYPE_DEBUG = 0x3D; // 4 bytes debug
 
-        public static dynamic Decode(string payload)
+        bool _compact;
+        dynamic _result;
+
+        public dynamic Decode(string payload, bool compact)
         {
-            dynamic result = new ExpandoObject();
-            PayloadParser parser = new PayloadParser(payload);
-            List<double> externalTemperature2 = new List<double>();
-            while (parser.RemainingBits > 0)
+            _result = new ExpandoObject();
+            _compact = compact;
+            var errorList = new List<string>();
+            var parser = new PayloadParser(payload);
+            var externalTemperature2 = new List<double>();
+            while (parser.RemainingBits > 15)
             {
                 switch (parser.GetUInt8())
                 {
                     case TYPE_TEMP:
-                        result.temperature = parser.GetInt16BE() / 10d;
+                        AddResult("temperature", parser.GetInt16BE() / 10d, "°C");
                         break;
                     case TYPE_RH:
-                        result.humidity = parser.GetInt8();
+                        AddResult("humidity", parser.GetInt8(), "%");
                         break;
                     case TYPE_ACC:
-                        result.x = parser.GetInt8();
-                        result.y = parser.GetInt8();
-                        result.z = parser.GetInt8();
+                        AddResult("x", parser.GetInt8(), "1/63G");
+                        AddResult("y", parser.GetInt8(), "1/63G");
+                        AddResult("z", parser.GetInt8(), "1/63G");
                         break;
                     case TYPE_LIGHT:
-                        result.light = parser.GetUInt16BE();
+                        AddResult("light", parser.GetUInt16BE(), "Lux");
                         break;
                     case TYPE_MOTION:
-                        result.motion = parser.GetUInt8();
+                        AddResult("motion", parser.GetUInt8(), "(no unit)");
                         break;
                     case TYPE_CO2:
-                        result.co2 = parser.GetUInt16BE();
+                        AddResult("co2", parser.GetUInt16BE(), "ppm");
                         break;
                     case TYPE_VDD:
-                        result.vdd = parser.GetUInt16BE();
+                        AddResult("vdd", parser.GetUInt16BE(), "mV");
                         break;
                     case TYPE_ANALOG1:
-                        result.analog1 = parser.GetUInt16BE();
+                        AddResult("analog1", parser.GetUInt16BE(), "mV");
                         break;
                     case TYPE_GPS: // Everything is big endian except GPS (See reference implementation)
-                        result.lat = parser.GetInt24() / 10000d;
-                        result["long"] = parser.GetInt24() / 10000d;
+                        AddResult("lat", parser.GetInt24() / 10000d, "?");
+                        AddResult("long", parser.GetInt24() / 10000d, "?");
                         break;
                     case TYPE_PULSE1:
-                        result.pulse1 = parser.GetUInt16BE();
+                        AddResult("pulse1", parser.GetUInt16BE(), "relative count");
                         break;
                     case TYPE_PULSE1_ABS:
                         // The comment in the reference implementation say that this is a unsigned int,
                         // but the code returns an signed int. This decoder follows the comment and returns
                         // an unsigned int.
-                        result.pulseAbs = parser.GetUInt32BE();
+                        AddResult("pulseAbs", parser.GetUInt32BE(), "count");
                         break;
                     case TYPE_EXT_TEMP1:
-                        result.externalTemperature = parser.GetInt16BE() / 10d;
+                        AddResult("externalTemperature", parser.GetInt16BE() / 10d, "°C");
                         break;
                     case TYPE_EXT_DIGITAL:
-                        result.digital = parser.GetUInt8();
+                        AddResult("digital", parser.GetBit(), "bool");
+                        // result.digital = parser.GetUInt8();
                         break;
                     case TYPE_EXT_DISTANCE:
-                        result.distance = parser.GetUInt16BE();
+                        AddResult("distance", parser.GetUInt16BE(), "mm");
                         break;
                     case TYPE_ACC_MOTION:
-                        result.accMotion = parser.GetUInt8();
+                        AddResult("accMotion", parser.GetUInt8(), "(no unit)");
                         break;
                     case TYPE_IR_TEMP:
-                        result.irInternalTemperature = parser.GetInt16BE() / 10d;
-                        result.irExternalTemperature = parser.GetInt16BE() / 10d;
+                        AddResult("irInternalTemperature", parser.GetInt16BE() / 10d, "°C");
+                        AddResult("irExternalTemperature", parser.GetInt16BE() / 10d, "°C");
                         break;
                     case TYPE_OCCUPANCY:
-                        result.occupancy = parser.GetUInt8();
+                        AddResult("occupancy", parser.GetUInt8(), "(no unit");
                         break;
                     case TYPE_WATERLEAK:
-                        result.waterleak = parser.GetUInt8();
+                        AddResult("waterleak", parser.GetUInt8(), "(no unit");
                         break;
                     case TYPE_GRIDEYE:
                         byte r = parser.GetUInt8();
@@ -113,56 +120,78 @@ namespace IoTPayloadDecoder
                         {
                             grideye[i] = r + parser.GetUInt8() / 10d;
                         }
-                        result.grideye = grideye;
+                        AddResult("grideye", grideye, "°C");
                         break;
                     case TYPE_PRESSURE:
                         // Reference implementation will return a signed value. I don't know if a
                         // negative pressure is possible, but sometimes the sensors will return
                         // 0xffffffff and it's a little clearer that something is wrong if we
                         // return -0.001 instead of 4294967.295.
-                        result.pressure = parser.GetInt32BE() / 1000d;
+                        AddResult("pressure", parser.GetInt32BE() / 1000d, "hPa");
                         break;
                     case TYPE_SOUND:
-                        result.soundPeak = parser.GetUInt8();
-                        result.soundAvg = parser.GetUInt8();
+                        AddResult("soundPeak", parser.GetUInt8(), "(no unit)");
+                        AddResult("soundAvg", parser.GetUInt8(), "(no unit)");
                         break;
                     case TYPE_PULSE2:
-                        result.pulse2 = parser.GetUInt16BE();
+                        AddResult("pulse2", parser.GetUInt16BE(), "relative count");
                         break;
                     case TYPE_PULSE2_ABS:
                         // The comment in the reference implementation say that this is a unsigned int,
                         // but the code returns an signed int. This decoder follows the comment and returns
                         // an unsigned int.
-                        result.pulseAbs2 = parser.GetUInt32BE();
+                        AddResult("pulseAbs2", parser.GetUInt16BE(), "count");
                         break;
                     case TYPE_ANALOG2:
-                        result.analog2 = parser.GetUInt16BE();
+                        AddResult("analog2", parser.GetUInt16BE(), "mV");
                         break;
                     case TYPE_EXT_TEMP2:
                         externalTemperature2.Add(parser.GetInt16BE() / 10d);
                         break;
                     case TYPE_EXT_DIGITAL2:
-                        result.digital2 = parser.GetUInt8();
+                        AddResult("digital2", parser.GetBit(), "bool");
                         break;
                     case TYPE_EXT_ANALOG_UV:
-                        result.analogUV = parser.GetUInt32BE();
+                        AddResult("analogUV", parser.GetUInt32BE(), "uV");
                         break;
                     case TYPE_TVOC:
-                        result.tvoc = parser.GetUInt16BE();
+                        AddResult("tvoc", parser.GetUInt16BE(), "ppb");
+                        break;
+                    case TYPE_DEBUG:
+                        AddResult("debug", parser.GetUInt32BE(), "(no unit)");
                         break;
                     default:
-                        throw new InvalidOperationException("Invalid data in payload");
+                        errorList.Add("Invalid data in payload");
+                        break;
                 }
             }
             if (externalTemperature2.Count == 1)
             {
-                result.externalTemperature2 = externalTemperature2[0];
+                AddResult("externalTemperature2", externalTemperature2[0], "°C");
             }
             if (externalTemperature2.Count > 1)
             {
-                result.externalTemperature2 = externalTemperature2;
+                AddResult("externalTemperature2", externalTemperature2, "°C");
             }
-            return result;
+            _result.errors = errorList.ToArray();
+            return _result;
+        }
+
+
+        private void AddResult<T>(string name, T value, string unit)
+        {
+            if (_compact)
+            {
+                ((IDictionary<string,object>)_result).Add(name, value);
+            }
+            else
+            {
+                dynamic tmp = new ExpandoObject();
+                tmp.value = value;
+                tmp.unit = unit;
+                ((IDictionary<string, object>)_result).Add(name, tmp);
+            }
         }
     }
 }
+
