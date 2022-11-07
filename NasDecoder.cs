@@ -1,4 +1,6 @@
-﻿using System.Dynamic;
+﻿using System;
+using System.Collections.Generic;
+using System.Dynamic;
 
 namespace IoTPayloadDecoder
 {
@@ -6,25 +8,32 @@ namespace IoTPayloadDecoder
     {
         public static dynamic Decode(string payloadString, int port, bool compact = false)
         {
-            PayloadParser parser = new(payloadString);
-            return port switch
+            var parser = new PayloadParser(payloadString);
+            switch (port)
             {
-                24 => DecodeStatusPacket(parser, compact),
-                25 => DecodeUsagePacket(parser, compact),
-                99 => DecodeBootPacket(parser, compact),
-                 _ => throw new InvalidOperationException("No decoder implemented for port"),
-            };
+                case 24:
+                    return DecodeStatusPacket(parser, compact);
+                case 25:
+                    return DecodeUsagePacket(parser, compact);
+                case 99:
+                    return DecodeBootPacket(parser, compact);
+                default:
+                    throw new InvalidOperationException("No decoder implemented for port");
+            }
         }
 
         private static dynamic DecodeBootPacket(PayloadParser parser, bool compact)
         {
             byte header = parser.GetUInt8();
-            return header switch
+            switch (header)
             {
-                0x00 => DecodeBootPacketValidPacket(parser, compact),
-                0x13 => DecodeBootPacketConfigFailedPacket(parser, compact),
-                   _ => throw new InvalidOperationException("Invalid boot packet header")
-            };
+                case 0x00:
+                    return DecodeBootPacketValidPacket(parser, compact);
+                case 0x13:
+                    return DecodeBootPacketConfigFailedPacket(parser, compact);
+                default:
+                    throw new InvalidOperationException("Invalid boot packet header");
+            }
         }
 
         private static dynamic DecodeBootPacketValidPacket(PayloadParser parser, bool compact)
@@ -53,12 +62,12 @@ namespace IoTPayloadDecoder
             byte optionalFeatures = parser.GetUInt8();
             packet.optional_features = WrapAsValueAndRaw(GetOptionalFeatures(optionalFeatures), optionalFeatures, compact);
 
-            PayloadParser daliInfoParser = new(parser.GetUInt8());
+            var daliInfoParser = new PayloadParser(parser.GetUInt8());
             packet.dali_supply_state = DecodeDaliInfo(daliInfoParser.GetBits(7), compact);
             bool externalPower = daliInfoParser.GetBit();
             packet.dali_power_source = WrapAsValueAndRaw(externalPower ? "external" : "internal", externalPower, compact);
 
-            PayloadParser driverParser = new(parser.GetUInt8());
+            var driverParser = new PayloadParser(parser.GetUInt8());
             packet.dali_addressed_driver_count = WrapAsValue(driverParser.GetBits(7), compact);
             packet.dali_unadressed_driver_found = WrapAsValue(driverParser.GetBit(), compact);
 
@@ -90,7 +99,7 @@ namespace IoTPayloadDecoder
         {
             dynamic packet = new ExpandoObject();
             packet.packet_type = WrapAsValue("usage_packet", compact);
-            List<dynamic> consumption = new();
+            var consumption = new List<dynamic>();
             while (parser.RemainingBits > 0)
             {
                 consumption.Add(DecodeConsumption(parser, compact));
@@ -107,7 +116,7 @@ namespace IoTPayloadDecoder
             byte address = parser.GetUInt8();
             string daliAddress = ConvertToDaliAddress(address, "internal_measurement");
             consumption.dali_address_short = WrapAsValueAndRaw(daliAddress, address, compact);
-            PayloadParser bitFieldParser = new(parser.GetUInt8());
+            var bitFieldParser = new PayloadParser(parser.GetUInt8());
             if (bitFieldParser.GetBit())
             {
                 consumption.active_energy_total = WrapAsValueAndUnit(parser.GetUInt32(), "Wh", compact);
@@ -214,7 +223,7 @@ namespace IoTPayloadDecoder
             string daliAddress = ConvertToDaliAddress(address);
             profile.dali_address_short = WrapAsValueAndRaw(daliAddress, address, compact);
             byte active_days = parser.GetUInt8(peek: true);
-            List<string> days = new();
+            var days = new List<string>();
             if (parser.GetBit()) days.Add("holiday");
             if (parser.GetBit()) days.Add("mon");
             if (parser.GetBit()) days.Add("tue");
@@ -227,25 +236,28 @@ namespace IoTPayloadDecoder
             return profile;
         }
 
-        private static dynamic? DecodeDaliInfo(int info, bool compact)
+        private static dynamic DecodeDaliInfo(int info, bool compact)
         {
             if (info < 0x70)
             {
                 return WrapAsValueRawAndUnit(info, info, "V", compact);
             }
-            return info switch
+            switch (info)
             {
-                0x7E => WrapAsValueAndRaw("bus_high", info, compact),
-                // err.warings.push('dali supply state: error')
-                0x7F => WrapAsValueAndRaw("dali_error", info, compact),
-                _ => WrapAsValueAndRaw("invalid_value", info, compact)
-            };
+                case 0x7E:
+                    // err.warings.push('dali supply state: error')
+                    return WrapAsValueAndRaw("bus_high", info, compact);
+                case 0x7F:
+                    return WrapAsValueAndRaw("dali_error", info, compact);
+                default:
+                    return WrapAsValueAndRaw("invalid_value", info, compact);
+            }
         }
 
         private static IEnumerable<string> GetResetReason(byte resetReason)
         {
-            List<string> reason = new();
-            PayloadParser parser = new(resetReason);
+            var reason = new List<string>();
+            var parser = new PayloadParser(resetReason);
             if (parser.GetBit()) reason.Add("reset_0");
             if (parser.GetBit()) reason.Add("watchdog_reset");
             if (parser.GetBit()) reason.Add("soft_reset");
@@ -259,73 +271,74 @@ namespace IoTPayloadDecoder
 
         private static string GetProfileOverrideReason(byte reason)
         {
-            return reason switch
+            switch (reason)
             {
-                246 => "driver_not_found",
-                247 => "calendar_active",
-                248 => "init_active",
-                249 => "profile_not_active",
-                250 => "ldr_active",
-                251 => "thr_active",
-                252 => "dig_active",
-                253 => "manual_active",
-                254 => "value_differ",
-                255 => "unknown",
-                  _ => "none",
+                case 246: return "driver_not_found";
+                case 247: return "calendar_active";
+                case 248: return "init_active";
+                case 249: return "profile_not_active";
+                case 250: return "ldr_active";
+                case 251: return "thr_active";
+                case 252: return "dig_active";
+                case 253: return "manual_active";
+                case 254: return "value_differ";
+                case 255: return "unknown";
+                default:  return "none";
             };
         }
 
         private static string GetDeviceConfigName(byte config)
         {
-            return config switch
+            switch (config)
             {
-                0 => "dali",
-                1 => "dali_nc",
-                2 => "dali_no",
-                3 => "analog_nc",
-                4 => "analog_no",
-                5 => "dali_analog_nc",
-                6 => "dali_analog_no",
-                7 => "dali_analog_nc_no",
-                _ => throw new ArgumentException("Invalid device config", nameof(config))
+                case 0: return "dali";
+                case 1: return "dali_nc";
+                case 2: return "dali_no";
+                case 3: return "analog_nc";
+                case 4: return "analog_no";
+                case 5: return "dali_analog_nc";
+                case 6: return "dali_analog_no";
+                case 7: return "dali_analog_nc_no";
+                default:
+                    throw new ArgumentException("Invalid device config", nameof(config));
             };
         }
 
         private static string GetErrorCodeText(byte reason)
         {
-            return reason switch
+            switch (reason)
             {
-                0x00 => "n/a",
-                0x01 => "n/a",
-                0x02 => "unknown_fport",
-                0x03 => "packet_size_short",
-                0x04 => "packet_size_long",
-                0x05 => "value_error",
-                0x06 => "protocol_parse_error",
-                0x07 => "reserved_flag_set",
-                0x08 => "invalid_flag_combination",
-                0x09 => "unavailable_feature_request",
-                0x0A => "unsupported_header",
-                0x0B => "unreachable_hw_request",
-                0x0C => "address_not_available",
-                0x0D => "internal_error",
-                0x0E => "packet_size_error",
-                 128 => "no_room",
-                 129 => "id_seq_error",
-                 130 => "destination_eror",
-                 131 => "days_error",
-                 132 => "step_count_error",
-                 133 => "step_value_error",
-                 134 => "step_unsorted",
-                 135 => "days_overlap",
-                   _ => "invalid_error_code"
+               case   0: return "n/a";
+               case   1: return "n/a";
+               case   2: return "unknown_fport";
+               case   3: return "packet_size_short";
+               case   4: return "packet_size_long";
+               case   5: return "value_error";
+               case   6: return "protocol_parse_error";
+               case   7: return "reserved_flag_set";
+               case   8: return "invalid_flag_combination";
+               case   9: return "unavailable_feature_request";
+               case  10: return "unsupported_header";
+               case  11: return "unreachable_hw_request";
+               case  12: return "address_not_available";
+               case  13: return "internal_error";
+               case  14: return "packet_size_error";
+               case 128: return "no_room";
+               case 129: return "id_seq_error";
+               case 130: return "destination_eror";
+               case 131: return "days_error";
+               case 132: return "step_count_error";
+               case 133: return "step_value_error";
+               case 134: return "step_unsorted";
+               case 135: return "days_overlap";
+               default:  return "invalid_error_code";
             };
         }
 
         private static IEnumerable<string> GetOptionalFeatures(byte optionalFeatures)
         {
-            List<string> features = new();
-            PayloadParser featuresParser = new(optionalFeatures);
+            var features = new List<string>();
+            var featuresParser = new PayloadParser(optionalFeatures);
             featuresParser.GetBit();
             if (featuresParser.GetBit()) features.Add("thr");
             if (featuresParser.GetBit()) features.Add("dig");
@@ -336,7 +349,7 @@ namespace IoTPayloadDecoder
             return features;
         }
 
-        private static string ConvertToDaliAddress(byte address, string? ff_str = null)
+        private static string ConvertToDaliAddress(byte address, string ff_str = null)
         {
             if (address == 0xfe)
             {
@@ -365,7 +378,7 @@ namespace IoTPayloadDecoder
             return string.Concat("single " + ((address >> 1) & 0x3f));
         }
 
-        private static dynamic? WrapAsValue<T>(T value, bool compact)
+        private static dynamic WrapAsValue<T>(T value, bool compact)
         {
             if (compact)
             {
@@ -376,7 +389,7 @@ namespace IoTPayloadDecoder
             return result;
         }
 
-        private static dynamic? WrapAsValueAndRaw<T1, T2>(T1 value, T2 raw, bool compact)
+        private static dynamic WrapAsValueAndRaw<T1, T2>(T1 value, T2 raw, bool compact)
         {
             if (compact)
             {
@@ -388,7 +401,7 @@ namespace IoTPayloadDecoder
             return result;
         }
 
-        private static dynamic? WrapAsValueAndUnit<T>(T value, string unit, bool compact)
+        private static dynamic WrapAsValueAndUnit<T>(T value, string unit, bool compact)
         {
             if (compact)
             {
@@ -404,7 +417,7 @@ namespace IoTPayloadDecoder
             return result;
         }
 
-        private static dynamic? WrapAsValueUnitAndMinMax<T>(T value, string unit, int min, int max, bool compact)
+        private static dynamic WrapAsValueUnitAndMinMax<T>(T value, string unit, int min, int max, bool compact)
         {
             dynamic result = new ExpandoObject();
             result.min = min;
@@ -426,7 +439,7 @@ namespace IoTPayloadDecoder
             return result;
         }
 
-        private static dynamic? WrapAsValueRawAndUnit<T1, T2>(T1 value, T2 raw, string unit, bool compact)
+        private static dynamic WrapAsValueRawAndUnit<T1, T2>(T1 value, T2 raw, string unit, bool compact)
         {
             if (compact)
             {

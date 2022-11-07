@@ -1,4 +1,6 @@
-﻿using System.Dynamic;
+﻿using System;
+using System.Collections.Generic;
+using System.Dynamic;
 
 namespace IoTPayloadDecoder
 {
@@ -37,8 +39,8 @@ namespace IoTPayloadDecoder
         public static dynamic Decode(string payload)
         {
             dynamic result = new ExpandoObject();
-            PayloadParser parser = new(payload);
-            List<double> externalTemperature2 = new();
+            PayloadParser parser = new PayloadParser(payload);
+            List<double> externalTemperature2 = new List<double>();
             while (parser.RemainingBits > 0)
             {
                 switch (parser.GetUInt8())

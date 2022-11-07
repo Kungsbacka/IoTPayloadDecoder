@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System;
+using System.Text;
 
 namespace IoTPayloadDecoder
 {
@@ -17,9 +18,34 @@ namespace IoTPayloadDecoder
         private int _bytePos;
         private byte _bitOffset;
 
+        private static byte[] _hexLookup => new byte[]
+        {
+            0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+            0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+            0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+            0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+            0x0, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+            0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+            0x0, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+            0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+            0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+            0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+            0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+            0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+            0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+            0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+            0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+            0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0
+        };
+
+        private static char[] _charLookup => new char[]
+        {
+            '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'
+        };
+
         public PayloadParser(string payloadString)
         {
-            _bytes = Convert.FromHexString(payloadString);
+            _bytes = ConvertFromHexString(payloadString);
             _bitCount = _bytes.Length * 8;
         }
 
@@ -60,7 +86,7 @@ namespace IoTPayloadDecoder
         {
             MoveToNextWholeByte();
             ThrowIfNotEnoughBits(16);
-            ushort result = BitConverter.ToUInt16(new ReadOnlySpan<byte>(_bytes, _bytePos, 2));
+            ushort result = BitConverter.ToUInt16(_bytes, _bytePos);
             _bytePos += 2;
             return result;
         }
@@ -69,7 +95,7 @@ namespace IoTPayloadDecoder
         {
             MoveToNextWholeByte();
             ThrowIfNotEnoughBits(16);
-            short result = BitConverter.ToInt16(new ReadOnlySpan<byte>(_bytes, _bytePos, 2));
+            short result = BitConverter.ToInt16(_bytes, _bytePos);
             _bytePos += 2;
             return result;
         }
@@ -79,7 +105,7 @@ namespace IoTPayloadDecoder
             byte[] bytes = new byte[2];
             bytes[1] = GetUInt8();
             bytes[0] = GetUInt8();
-            return BitConverter.ToUInt16(new ReadOnlySpan<byte>(bytes));
+            return BitConverter.ToUInt16(bytes, 0);
         }
 
         public short GetInt16BE()
@@ -87,18 +113,17 @@ namespace IoTPayloadDecoder
             byte[] bytes = new byte[2];
             bytes[1] = GetUInt8();
             bytes[0] = GetUInt8();
-            return BitConverter.ToInt16(new ReadOnlySpan<byte>(bytes));
+            return BitConverter.ToInt16(bytes, 0);
         }
 
         public int GetUInt24()
         {
             MoveToNextWholeByte();
             ThrowIfNotEnoughBits(24);
-            ReadOnlySpan<byte> span = new(_bytes, _bytePos, 3);
             int result =
-                span[0] +
-                span[1] * 256 +
-                span[2] * 65536
+                _bytes[_bytePos + 0] +
+                _bytes[_bytePos + 1] * 256 +
+                _bytes[_bytePos + 2] * 65536
             ;
             _bytePos += 3;
             return result;
@@ -108,13 +133,12 @@ namespace IoTPayloadDecoder
         {
             MoveToNextWholeByte();
             ThrowIfNotEnoughBits(24);
-            ReadOnlySpan<byte> span = new(_bytes, _bytePos, 3);         
             int result = (
-                span[0] +
-                span[1] * 256 +
-                span[2] * 65536
+                _bytes[_bytePos + 0] +
+                _bytes[_bytePos + 1] * 256 +
+                _bytes[_bytePos + 2] * 65536
             );
-            if ((span[2] & 0x80) > 0)
+            if ((_bytes[_bytePos + 2] & 0x80) > 0)
             {
                 result |= (0xFF << 24);
             }
@@ -128,7 +152,7 @@ namespace IoTPayloadDecoder
             byte offset = _bitOffset;
             MoveToNextWholeByte();
             ThrowIfNotEnoughBits(32);
-            uint result = BitConverter.ToUInt32(new ReadOnlySpan<byte>(_bytes, _bytePos, 4));
+            uint result = BitConverter.ToUInt32(_bytes, _bytePos);
             if (peek)
             {
                 _bytePos = bytePos;
@@ -143,7 +167,7 @@ namespace IoTPayloadDecoder
         {
             MoveToNextWholeByte();
             ThrowIfNotEnoughBits(32);
-            int result = BitConverter.ToInt32(new ReadOnlySpan<byte>(_bytes, _bytePos, 4));
+            int result = BitConverter.ToInt32(_bytes, _bytePos);
             _bytePos += 4;
             return result;
         }
@@ -155,7 +179,7 @@ namespace IoTPayloadDecoder
             bytes[2] = GetUInt8();
             bytes[1] = GetUInt8();
             bytes[0] = GetUInt8();
-            return BitConverter.ToUInt32(new ReadOnlySpan<byte>(bytes));
+            return BitConverter.ToUInt32(bytes, 0);
         }
 
         public int GetInt32BE()
@@ -165,14 +189,14 @@ namespace IoTPayloadDecoder
             bytes[2] = GetUInt8();
             bytes[1] = GetUInt8();
             bytes[0] = GetUInt8();
-            return BitConverter.ToInt32(new ReadOnlySpan<byte>(bytes));
+            return BitConverter.ToInt32(bytes, 0);
         }
 
         public ulong GetUInt64()
         {
             MoveToNextWholeByte();
             ThrowIfNotEnoughBits(64);
-            ulong result = BitConverter.ToUInt64(new ReadOnlySpan<byte>(_bytes, _bytePos, 8));
+            ulong result = BitConverter.ToUInt64(_bytes, _bytePos);
             _bytePos += 8;
             return result;
         }
@@ -181,7 +205,7 @@ namespace IoTPayloadDecoder
         {
             MoveToNextWholeByte();
             ThrowIfNotEnoughBits(byteCount * 8);
-            string result = Convert.ToHexString(new ReadOnlySpan<byte>(_bytes, _bytePos, byteCount));
+            string result = ConvertToHexString(_bytes, _bytePos, byteCount);
             _bytePos += byteCount;
             return result;
         }
@@ -190,7 +214,7 @@ namespace IoTPayloadDecoder
         {
             MoveToNextWholeByte();
             ThrowIfNotEnoughBits(byteCount * 8);
-            string result = Encoding.UTF8.GetString(new ReadOnlySpan<byte>(_bytes, _bytePos, byteCount));
+            string result = Encoding.UTF8.GetString(_bytes, _bytePos, byteCount);
             _bytePos += byteCount;
             return result;
         }
@@ -249,6 +273,63 @@ namespace IoTPayloadDecoder
             {
                 throw new InvalidOperationException("Not enough bits left to fullfill request.");
             }
+        }
+
+        private static byte[] ConvertFromHexString(string hex)
+        {
+            if (string.IsNullOrEmpty(hex))
+            {
+                throw new ArgumentException("Hex string cannot be null or an empty string", nameof(hex));
+            }
+            if (hex.Length % 2 != 0)
+            {
+                throw new ArgumentException("Hex string must contain whole bytes", nameof(hex));
+            }
+            byte[] bytes = new byte[hex.Length / 2];
+            int i = 0;
+            int j = 0;
+            while (j < bytes.Length)
+            {
+                byte lo = _hexLookup[(byte)hex[i + 1]];
+                byte hi = _hexLookup[(byte)hex[i]];
+                bytes[j++] = (byte)(hi << 4 | lo);
+                i += 2;
+            }
+            return bytes;
+        }
+
+        private static string ConvertToHexString(byte[] bytes, int startIndex, int byteCount)
+        {
+            if (bytes == null)
+            {
+                throw new ArgumentNullException(nameof(bytes));
+            }
+
+            if (startIndex < 0 || startIndex >= bytes.Length)
+            {
+                throw new ArgumentException("Start index out of bounds of the array", nameof(startIndex));
+            }
+
+            if (byteCount < 0)
+            {
+                throw new ArgumentException("Byte count cannot be less than zero", nameof(byteCount));
+            }
+
+            if (bytes.Length < startIndex + byteCount)
+            {
+                throw new ArgumentException("Not enough bytes", nameof(bytes));
+            }
+
+            int i = startIndex;
+            int end = startIndex + byteCount;
+            StringBuilder sb = new StringBuilder(byteCount * 2);
+            while (i < end)
+            {
+                sb.Append(_charLookup[bytes[i] >> 4]);
+                sb.Append(_charLookup[bytes[i] & 0xf]);
+                i++;
+            }
+            return sb.ToString();
         }
     }
 }
