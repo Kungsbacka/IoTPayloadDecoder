@@ -35,7 +35,7 @@ namespace IoTPayloadDecoder.Decoders.NAS
                     result = DecodeBootPacketConfigFailedPacket();
                     break;
                 default:
-                    throw new InvalidOperationException("Invalid boot packet header");
+                    throw new PayloadDecodingException("Invalid boot packet header");
             }
             result.errors = _errorList.ToArray();
             return result;
@@ -44,49 +44,49 @@ namespace IoTPayloadDecoder.Decoders.NAS
         private dynamic DecodeBootPacketValidPacket()
         {
             dynamic packet = new ExpandoObject();
-            packet.packet_type = Helpers.WrapAsValue("boot_packet", _compact);
+            packet.packet_type = Helpers.FormatAsValue("boot_packet", _compact);
 
             uint serial = _parser.GetUInt32();
-            packet.device_serial = Helpers.WrapAsValue(serial.ToString("X8"), _compact);
+            packet.device_serial = Helpers.FormatAsValue(serial.ToString("X8"), _compact);
 
             byte major = _parser.GetUInt8();
             byte minor = _parser.GetUInt8();
             byte patch = _parser.GetUInt8();
-            packet.firmware_version = Helpers.WrapAsValueAndRaw(
+            packet.firmware_version = Helpers.FormatAsValueAndRaw(
                 string.Concat(major, ".", minor, ".", patch),
                 ((major << 16) | (minor << 8) | patch).ToString(),
                 _compact
             );
 
             uint epochRaw = _parser.GetUInt32(peek: true);
-            packet.device_unix_epoch = Helpers.WrapAsValueAndRaw(_parser.GetUnixEpoch(), epochRaw, _compact);
+            packet.device_unix_epoch = Helpers.FormatAsValueAndRaw(_parser.GetUnixEpoch(), epochRaw, _compact);
 
             byte deviceConfig = _parser.GetUInt8();
-            packet.device_config = Helpers.WrapAsValueAndRaw(GetDeviceConfigName(deviceConfig), deviceConfig, _compact);
+            packet.device_config = Helpers.FormatAsValueAndRaw(GetDeviceConfigName(deviceConfig), deviceConfig, _compact);
 
             byte optionalFeatures = _parser.GetUInt8();
             var featureList = GetOptionalFeatures(optionalFeatures);
             if (featureList.Count == 1)
             {
-                packet.optional_features = Helpers.WrapAsValueAndRaw(featureList[0], optionalFeatures, _compact);
+                packet.optional_features = Helpers.FormatAsValueAndRaw(featureList[0], optionalFeatures, _compact);
             }
             else
             {
-                packet.optional_features = Helpers.WrapAsValueAndRaw(featureList, optionalFeatures, _compact);
+                packet.optional_features = Helpers.FormatAsValueAndRaw(featureList, optionalFeatures, _compact);
             }
             var daliInfoParser = new PayloadParser(_parser.GetUInt8());
             packet.dali_supply_state = DecodeDaliInfo(daliInfoParser.GetBits(7));
             bool externalPower = daliInfoParser.GetBit();
-            packet.dali_power_source = Helpers.WrapAsValueAndRaw(externalPower ? "external" : "internal", externalPower, _compact);
+            packet.dali_power_source = Helpers.FormatAsValueAndRaw(externalPower ? "external" : "internal", externalPower, _compact);
 
             var driverParser = new PayloadParser(_parser.GetUInt8());
-            packet.dali_addressed_driver_count = Helpers.WrapAsValue(driverParser.GetBits(7), _compact);
-            packet.dali_unadressed_driver_found = Helpers.WrapAsValue(driverParser.GetBit(), _compact);
+            packet.dali_addressed_driver_count = Helpers.FormatAsValue(driverParser.GetBits(7), _compact);
+            packet.dali_unadressed_driver_found = Helpers.FormatAsValue(driverParser.GetBit(), _compact);
 
             if (_parser.RemainingBits >= 8)
             {
                 byte resetReason = _parser.GetUInt8();
-                packet.reset_reason = Helpers.WrapAsValueAndRaw(GetResetReason(resetReason), resetReason, _compact);
+                packet.reset_reason = Helpers.FormatAsValueAndRaw(GetResetReason(resetReason), resetReason, _compact);
             }
 
             dynamic result = new ExpandoObject();
@@ -97,11 +97,11 @@ namespace IoTPayloadDecoder.Decoders.NAS
         private dynamic DecodeBootPacketConfigFailedPacket()
         {
             dynamic packet = new ExpandoObject();
-            packet.packet_type = Helpers.WrapAsValue("invalid_downlink_packet", _compact);
-            packet.packet_from_fport = Helpers.WrapAsValue(_parser.GetUInt8(), _compact);
+            packet.packet_type = Helpers.FormatAsValue("invalid_downlink_packet", _compact);
+            packet.packet_from_fport = Helpers.FormatAsValue(_parser.GetUInt8(), _compact);
             byte errorCode = _parser.GetUInt8();
             string errorText = GetErrorCodeText(errorCode);
-            packet.parse_error_code = Helpers.WrapAsValueAndRaw(errorText, errorCode, _compact);
+            packet.parse_error_code = Helpers.FormatAsValueAndRaw(errorText, errorCode, _compact);
             _errorList.Add($"Config failed: {errorText}");
             dynamic result = new ExpandoObject();
             result.data = packet;
@@ -112,17 +112,17 @@ namespace IoTPayloadDecoder.Decoders.NAS
         {
             if (info < 0x70)
             {
-                return Helpers.WrapAsValueRawAndUnit(info, info, "V", _compact);
+                return Helpers.FormatAsValueRawAndUnit(info, info, "V", _compact);
             }
             switch (info)
             {
                 case 0x7E:
                     // err.warings.push('dali supply state: error')
-                    return Helpers.WrapAsValueAndRaw("bus_high", info, _compact);
+                    return Helpers.FormatAsValueAndRaw("bus_high", info, _compact);
                 case 0x7F:
-                    return Helpers.WrapAsValueAndRaw("dali_error", info, _compact);
+                    return Helpers.FormatAsValueAndRaw("dali_error", info, _compact);
                 default:
-                    return Helpers.WrapAsValueAndRaw("invalid_value", info, _compact);
+                    return Helpers.FormatAsValueAndRaw("invalid_value", info, _compact);
             }
         }
 
@@ -167,8 +167,7 @@ namespace IoTPayloadDecoder.Decoders.NAS
                 case 5: return "dali_analog_nc";
                 case 6: return "dali_analog_no";
                 case 7: return "dali_analog_nc_no";
-                default:
-                    throw new ArgumentException("Invalid device config", nameof(config));
+                default: throw new PayloadDecodingException("Invalid device config");
             };
         }
 

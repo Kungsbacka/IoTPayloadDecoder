@@ -31,7 +31,7 @@ namespace IoTPayloadDecoder.Decoders.NAS
         private dynamic DecodeUsagePacket()
         {
             dynamic packet = new ExpandoObject();
-            packet.packet_type = Helpers.WrapAsValue("usage_packet", _compact);
+            packet.packet_type = Helpers.FormatAsValue("usage_packet", _compact);
             var consumption = new List<dynamic>();
             while (_parser.RemainingBits > 0)
             {
@@ -52,39 +52,39 @@ namespace IoTPayloadDecoder.Decoders.NAS
             {
                 _errorList.Add("Invalid DALI address");
             }
-            consumption.dali_address_short = Helpers.WrapAsValueAndRaw(daliAddress, address, _compact);
+            consumption.dali_address_short = Helpers.FormatAsValueAndRaw(daliAddress, address, _compact);
             var bitFieldParser = new PayloadParser(_parser.GetUInt8());
             if (bitFieldParser.GetBit())
             {
-                consumption.active_energy_total = Helpers.WrapAsValueAndUnit(_parser.GetUInt32(), "Wh", _compact);
+                consumption.active_energy_total = Helpers.FormatAsValueAndUnit(_parser.GetUInt32(), "Wh", _compact);
             }
             if (bitFieldParser.GetBit())
             {
-                consumption.active_energy_instant = Helpers.WrapAsValueAndUnit(_parser.GetUInt16(), "W", _compact);
+                consumption.active_energy_instant = Helpers.FormatAsValueAndUnit(_parser.GetUInt16(), "W", _compact);
             }
             if (bitFieldParser.GetBit())
             {
-                consumption.load_side_energy_total = Helpers.WrapAsValueAndUnit(_parser.GetUInt32(), "Wh", _compact);
+                consumption.load_side_energy_total = Helpers.FormatAsValueAndUnit(_parser.GetUInt32(), "Wh", _compact);
             }
             if (bitFieldParser.GetBit())
             {
-                consumption.load_side_energy_instant = Helpers.WrapAsValueAndUnit(_parser.GetUInt16(), "W", _compact);
+                consumption.load_side_energy_instant = Helpers.FormatAsValueAndUnit(_parser.GetUInt16(), "W", _compact);
             }
             if (bitFieldParser.GetBit())
             {
-                consumption.power_factor_instant = Helpers.WrapAsValue(_parser.GetUInt8() / 100, _compact);
+                consumption.power_factor_instant = Helpers.FormatAsValue(_parser.GetUInt8() / 100, _compact);
             }
             if (bitFieldParser.GetBit())
             {
-                consumption.mains_voltage = Helpers.WrapAsValueAndUnit(_parser.GetUInt8(), "V", _compact);
+                consumption.mains_voltage = Helpers.FormatAsValueAndUnit(_parser.GetUInt8(), "V", _compact);
             }
             if (bitFieldParser.GetBit())
             {
-                consumption.driver_operating_time = Helpers.WrapAsValueAndUnit(_parser.GetUInt32(), "s", _compact);
+                consumption.driver_operating_time = Helpers.FormatAsValueAndUnit(_parser.GetUInt32(), "s", _compact);
             }
             if (bitFieldParser.GetBit())
             {
-                consumption.lamp_on_time = Helpers.WrapAsValueAndUnit(_parser.GetUInt32(), address == 0xff ? "h" : "s", _compact);
+                consumption.lamp_on_time = Helpers.FormatAsValueAndUnit(_parser.GetUInt32(), address == 0xff ? "h" : "s", _compact);
             }
             return consumption;
         }

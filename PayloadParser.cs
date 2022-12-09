@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace IoTPayloadDecoder
@@ -43,12 +44,6 @@ namespace IoTPayloadDecoder
             '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'
         };
 
-        public PayloadParser(string payloadString)
-        {
-            _bytes = ConvertFromHexString(payloadString);
-            _bitCount = _bytes.Length * 8;
-        }
-
         public PayloadParser(byte[] bytes)
         {
             _bytes = new byte[bytes.Length];
@@ -56,13 +51,15 @@ namespace IoTPayloadDecoder
             _bitCount = _bytes.Length * 8;
         }
 
-        public PayloadParser(byte oneByte) : this(new byte[] { oneByte }) {}
+        public PayloadParser(string payloadString) : this(ConvertFromHexString(payloadString)) { }
+
+        public PayloadParser(byte oneByte) : this(new byte[] { oneByte }) { }
 
         public byte GetUInt8(bool peek = false)
         {
             int bytePos = _bytePos;
             byte offset = _bitOffset;
-            MoveToNextWholeByte();
+            MoveToNextByte();
             ThrowIfNotEnoughBits(8);
             byte result = _bytes[_bytePos];
             if (peek)
@@ -77,14 +74,14 @@ namespace IoTPayloadDecoder
 
         public sbyte GetInt8()
         {
-            MoveToNextWholeByte();
+            MoveToNextByte();
             ThrowIfNotEnoughBits(8);
             return (sbyte)_bytes[_bytePos++];
         }
 
         public ushort GetUInt16()
         {
-            MoveToNextWholeByte();
+            MoveToNextByte();
             ThrowIfNotEnoughBits(16);
             ushort result = BitConverter.ToUInt16(_bytes, _bytePos);
             _bytePos += 2;
@@ -93,7 +90,7 @@ namespace IoTPayloadDecoder
 
         public short GetInt16()
         {
-            MoveToNextWholeByte();
+            MoveToNextByte();
             ThrowIfNotEnoughBits(16);
             short result = BitConverter.ToInt16(_bytes, _bytePos);
             _bytePos += 2;
@@ -118,7 +115,7 @@ namespace IoTPayloadDecoder
 
         public int GetUInt24()
         {
-            MoveToNextWholeByte();
+            MoveToNextByte();
             ThrowIfNotEnoughBits(24);
             int result =
                 _bytes[_bytePos + 0] +
@@ -131,7 +128,7 @@ namespace IoTPayloadDecoder
 
         public int GetInt24()
         {
-            MoveToNextWholeByte();
+            MoveToNextByte();
             ThrowIfNotEnoughBits(24);
             int result = (
                 _bytes[_bytePos + 0] +
@@ -150,7 +147,7 @@ namespace IoTPayloadDecoder
         {
             int bytePos = _bytePos;
             byte offset = _bitOffset;
-            MoveToNextWholeByte();
+            MoveToNextByte();
             ThrowIfNotEnoughBits(32);
             uint result = BitConverter.ToUInt32(_bytes, _bytePos);
             if (peek)
@@ -165,7 +162,7 @@ namespace IoTPayloadDecoder
 
         public int GetInt32()
         {
-            MoveToNextWholeByte();
+            MoveToNextByte();
             ThrowIfNotEnoughBits(32);
             int result = BitConverter.ToInt32(_bytes, _bytePos);
             _bytePos += 4;
@@ -194,7 +191,7 @@ namespace IoTPayloadDecoder
 
         public ulong GetUInt64()
         {
-            MoveToNextWholeByte();
+            MoveToNextByte();
             ThrowIfNotEnoughBits(64);
             ulong result = BitConverter.ToUInt64(_bytes, _bytePos);
             _bytePos += 8;
@@ -203,7 +200,7 @@ namespace IoTPayloadDecoder
 
         public string GetHexString(int byteCount)
         {
-            MoveToNextWholeByte();
+            MoveToNextByte();
             ThrowIfNotEnoughBits(byteCount * 8);
             string result = ConvertToHexString(_bytes, _bytePos, byteCount);
             _bytePos += byteCount;
@@ -212,7 +209,7 @@ namespace IoTPayloadDecoder
 
         public string GetString(int byteCount)
         {
-            MoveToNextWholeByte();
+            MoveToNextByte();
             ThrowIfNotEnoughBits(byteCount * 8);
             string result = Encoding.UTF8.GetString(_bytes, _bytePos, byteCount);
             _bytePos += byteCount;
@@ -223,7 +220,7 @@ namespace IoTPayloadDecoder
         {
             if (_bitOffset >= 8)
             {
-                MoveToNextWholeByte();
+                MoveToNextByte();
             }
             ThrowIfNotEnoughBits(1);
             return ((_bytes[_bytePos] >> _bitOffset++) & 1) == 1;
@@ -233,15 +230,15 @@ namespace IoTPayloadDecoder
         {
             if (bitCount < 2)
             {
-                throw new InvalidOperationException("Cannot extract less than two bits. To extract one bit, use GetBit().");
+                throw new ArgumentException("Cannot extract less than 2 bits. To extract one bit, use GetBit().", nameof(bitCount));
             }
             if (bitCount > 7)
             {
-                throw new InvalidOperationException("Cannot extract more than 7 bits at a time.");
+                throw new ArgumentException("Cannot extract more than 7 bits at a time.", nameof(bitCount));
             }
             if (_bitOffset >= 8)
             {
-                MoveToNextWholeByte();
+                MoveToNextByte();
             }
             ThrowIfNotEnoughBits(bitCount);
             byte mask = (byte)(Math.Pow(2, bitCount) - 1);
@@ -256,7 +253,7 @@ namespace IoTPayloadDecoder
             return DateTimeOffset.FromUnixTimeSeconds(epoch).DateTime;
         }
 
-        private void MoveToNextWholeByte()
+        private void MoveToNextByte()
         {
             if (_bitOffset == 0)
             {
@@ -271,7 +268,7 @@ namespace IoTPayloadDecoder
         {
             if (_bytePos * 8 + _bitOffset + bitsRequested > _bitCount)
             {
-                throw new InvalidOperationException("Not enough bits left to fullfill request.");
+                throw new PayloadParsingException("Not enough bits left to fullfill request.");
             }
         }
 
@@ -283,7 +280,7 @@ namespace IoTPayloadDecoder
             }
             if (hex.Length % 2 != 0)
             {
-                throw new ArgumentException("Hex string must contain whole bytes", nameof(hex));
+                throw new ArgumentException("Hex string must represent an even number of bytes", nameof(hex));
             }
             byte[] bytes = new byte[hex.Length / 2];
             int i = 0;
