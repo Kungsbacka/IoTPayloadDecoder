@@ -44,14 +44,11 @@ namespace IoTPayloadDecoder
                 FieldInfo field = type.GetField(name);
                 if (field != null)
                 {
-                    DescriptionAttribute attr =
-                           Attribute.GetCustomAttribute(field,
-                             typeof(DescriptionAttribute)) as DescriptionAttribute;
-                    if (attr != null)
-                    {
-                        return attr.Description;
-                    }
-                }
+					if (Attribute.GetCustomAttribute(field, typeof(DescriptionAttribute)) is DescriptionAttribute attr)
+					{
+						return attr.Description;
+					}
+				}
             }
             return null;
         }

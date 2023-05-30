@@ -4,7 +4,7 @@ using System.Data;
 using System.Dynamic;
 using System.Text;
 
-namespace IoTPayloadDecoder.Decoders.NAS
+namespace IoTPayloadDecoder.Decoders.NAS10
 {
     public class ConfigPacketDecoder : IPayloadDecoder
     {
@@ -52,40 +52,40 @@ namespace IoTPayloadDecoder.Decoders.NAS
                     break;
                 case 0x08:
                     // decodeProfileConfig(dataView, result, err);
-                    break;
+                    throw new NotImplementedException("decodeProfileConfig");
                 case 0x09:
-                    // decodeTimeConfig(dataView, result);
-                    break;
-                case 0x0A:
-                    // decodeLegacyDefaultsConfig(dataView, result);
-                    break;
-                case 0x0B:
+					// decodeTimeConfig(dataView, result);
+					throw new NotImplementedException("decodeTimeConfig");
+				case 0x0A:
+					// decodeLegacyDefaultsConfig(dataView, result);
+					throw new NotImplementedException("decodeLegacyDefaultsConfig");
+				case 0x0B:
                     // decodeUsageConfig(dataView, result);
-                    break;
+                    throw new NotImplementedException("decodeUsageConfig");
                 case 0x0C:
                     // decodeHolidayConfig(dataView, result);
-                    break;
+                    throw new NotImplementedException("decodeHolidayConfig");
                 case 0x0D:
                     // decodeBootDelayConfig(dataView, result);
-                    break;
+                    throw new NotImplementedException("decodeBootDelayConfig");
                 case 0x0E:
                     // decodeDefaultsConfig(dataView, result);
-                    break;
+                    throw new NotImplementedException("decodeDefaultsConfig");
                 case 0x13:
                     // decodeLocationConfig(dataView, result);
-                    break;
+                    throw new NotImplementedException("decodeLocationConfig");
                 case 0x15:
                     // decodeLedConfig(dataView, result);
-                    break;
+                    throw new NotImplementedException("decodeLedConfig");
                 case 0x16:
                     // decodeMeteringAlertConfig(dataView, result, err);
-                    break;
+                    throw new NotImplementedException("decodeMeteringAlertConfig");
                 case 0x52:
                     // decodeMulticastConfig(dataView, result, err);
-                    break;
+                    throw new NotImplementedException("decodeMulticastConfig");
                 case 0xFF:
                     // decodeClearConfig(dataView, result, err);
-                    break;
+                    throw new NotImplementedException("decodeClearConfig");
                 default:
                     _errorList.Add("invalid_header");
                     break;
@@ -139,7 +139,7 @@ namespace IoTPayloadDecoder.Decoders.NAS
             string daliAddress = Helpers.ConvertToDaliAddress(address, null);
             if (Helpers.IsInvalidDaliAddress(daliAddress))
             {
-                _errorList.Add("Invalod DALI address");
+                _errorList.Add("Invalid DALI address");
             }
             result.dali_address_short = daliAddress;
             result.dimming_level = Helpers.FormatAsValueAndUnit(_parser.GetUInt8(), "%", _compact);

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Dynamic;
 
-namespace IoTPayloadDecoder.Decoders.NAS
+namespace IoTPayloadDecoder.Decoders.NAS11
 {
     public class UsagePacketDecoder : IPayloadDecoder
     {

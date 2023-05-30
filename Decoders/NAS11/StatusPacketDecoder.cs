@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Dynamic;
 
-namespace IoTPayloadDecoder.Decoders.NAS
+namespace IoTPayloadDecoder.Decoders.NAS11
 {
     public  class StatusPacketDecoder : IPayloadDecoder
     {
@@ -31,22 +31,34 @@ namespace IoTPayloadDecoder.Decoders.NAS
         private dynamic DecodeStatusPacket()
         {
             dynamic packet = new ExpandoObject();
+            dynamic result = new ExpandoObject();
+            result.data = packet;
 
             packet.packet_type = Helpers.FormatAsValue("status_packet", _compact);
+
+            if (_parser.GetUInt8() != 0)
+            {
+                _errorList.Add("invalid_header");
+                return result;
+            }
+
             uint epochRaw = _parser.GetUInt32(peek: true);
             packet.device_unix_epoch = Helpers.FormatAsValueAndRaw(_parser.GetUnixEpoch(), epochRaw, _compact);
 
-            packet.status_field = new ExpandoObject();
-            packet.status_field.dali_error_external = Helpers.FormatAsValue(_parser.GetBit(), _compact);
-            packet.status_field.dali_error_connection = Helpers.FormatAsValue(_parser.GetBit(), _compact);
-            packet.status_field.ldr_state = Helpers.FormatAsValue(_parser.GetBit(), _compact);
+            _parser.GetBit(); // throw away bit
+
+            packet.status = new ExpandoObject();
+            packet.status.dali_connection_error = Helpers.FormatAsValue(_parser.GetBit(), _compact);
+            packet.status.ldr_input_on = Helpers.FormatAsValue(_parser.GetBit(), _compact);
 
             _parser.GetBit(); // throw away bit
 
-            packet.status_field.dig_state = Helpers.FormatAsValue(_parser.GetBit(), _compact);
-            packet.status_field.hardware_error = Helpers.FormatAsValue(_parser.GetBit(), _compact);
-            packet.status_field.firmware_error = Helpers.FormatAsValue(_parser.GetBit(), _compact);
-            packet.status_field.internal_relay_state = Helpers.FormatAsValue(_parser.GetBit(), _compact);
+            packet.status.dig_input_on = Helpers.FormatAsValue(_parser.GetBit(), _compact);
+            packet.status.metering_com_error = Helpers.FormatAsValue(_parser.GetBit(), _compact);
+            packet.status.rtc_com_error = Helpers.FormatAsValue(_parser.GetBit(), _compact);
+            packet.status.internal_relay_closed = Helpers.FormatAsValue(_parser.GetBit(), _compact);
+
+            // ---- fortsätt här ---->
 
             packet.downlink_rssi = Helpers.FormatAsValueAndUnit(_parser.GetUInt8(), "dBm", _compact);
             packet.downlink_snr = Helpers.FormatAsValueAndUnit(_parser.GetInt8(), "dB", _compact);
@@ -82,8 +94,6 @@ namespace IoTPayloadDecoder.Decoders.NAS
                     _parser.GetUInt8(), "%", 0, 100, _compact);
             }
 
-            dynamic result = new ExpandoObject();
-            result.data = packet;
             return result;
         }
     }
