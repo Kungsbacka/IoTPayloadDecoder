@@ -84,7 +84,7 @@ namespace IoTPayloadDecoder.Decoders.NAS11
             }
             if (bitFieldParser.GetBit())
             {
-                consumption.lamp_on_time = Helpers.FormatAsValueAndUnit(_parser.GetUInt32(), address == 0xff ? "h" : "s", _compact);
+                consumption.lamp_on_time = Helpers.FormatAsValueAndUnit(_parser.GetUInt32(), "s", _compact);
             }
             return consumption;
         }

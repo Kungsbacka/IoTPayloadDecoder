@@ -111,6 +111,10 @@ namespace IoTPayloadDecoder.Decoders.NAS11
 
         internal static string ConvertToDaliAddress(byte address, string ff_str = null)
         {
+            if (address == 0x01)
+            {
+                return "analog_0_10v";
+            }
             if (address == 0xfe)
             {
                 return "broadcast";

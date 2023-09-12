@@ -6,7 +6,8 @@ namespace IoTPayloadDecoder.Decoders.NAS11
 {
     public  class StatusPacketDecoder : IPayloadDecoder
     {
-        public static int Port = 24;
+
+        public static int Port = 23;
 
         private List<string> _errorList;
         private PayloadParser _parser;
@@ -14,6 +15,7 @@ namespace IoTPayloadDecoder.Decoders.NAS11
 
         public dynamic Decode(string payloadString, bool compact)
         {
+
             if (!Helpers.IsValidPayloadString(payloadString))
             {
                 throw new ArgumentException("Payload string is not a valid hex string", nameof(payloadString));
@@ -60,11 +62,13 @@ namespace IoTPayloadDecoder.Decoders.NAS11
 
             // ---- fortsätt här ---->
 
-            packet.downlink_rssi = Helpers.FormatAsValueAndUnit(_parser.GetUInt8(), "dBm", _compact);
+            // ---- till hit ---->
+            packet.downlink_rssi = Helpers.FormatAsValueAndUnit(-1 * _parser.GetUInt8(), "dBm", _compact);
             packet.downlink_snr = Helpers.FormatAsValueAndUnit(_parser.GetInt8(), "dB", _compact);
             packet.mcu_temperature = Helpers.FormatAsValueAndUnit(_parser.GetInt8(), "\u00B0C", _compact);
 
-            bool thr_sent = _parser.GetBit();
+            //
+            _parser.GetBit(); // throw away legacy thr bit
             bool ldr_sent = _parser.GetBit();
 
             packet.analog_interfaces = new ExpandoObject();
@@ -72,20 +76,20 @@ namespace IoTPayloadDecoder.Decoders.NAS11
 
             _parser.GetBit(); // throw away bit
 
-            packet.analog_interfaces.voltage_alert_in_24h = Helpers.FormatAsValue(_parser.GetBit(), _compact);
-            packet.analog_interfaces.lamp_error_alert_in_24h = Helpers.FormatAsValue(_parser.GetBit(), _compact);
-            packet.analog_interfaces.power_alert_in_24h = Helpers.FormatAsValue(_parser.GetBit(), _compact);
-            packet.analog_interfaces.power_factor_alert_in_24h = Helpers.FormatAsValue(_parser.GetBit(), _compact);
-
-            if (thr_sent)
-            {
-                packet.thr_value = Helpers.FormatAsValue(_parser.GetUInt8(), _compact);
-            }
+            bool alerts_sent = _parser.GetBit();
 
             if (ldr_sent)
             {
                 packet.ldr_value = Helpers.FormatAsValue(_parser.GetUInt8(), _compact);
             }
+            if (alerts_sent)
+            {
+                packet.analog_interfaces.voltage_alert_in_24h = Helpers.FormatAsValue(_parser.GetBit(), _compact);
+                packet.analog_interfaces.lamp_error_alert_in_24h = Helpers.FormatAsValue(_parser.GetBit(), _compact);
+                packet.analog_interfaces.power_alert_in_24h = Helpers.FormatAsValue(_parser.GetBit(), _compact);
+                packet.analog_interfaces.power_factor_alert_in_24h = Helpers.FormatAsValue(_parser.GetBit(), _compact);
+            }
+
 
             if (_parser.RemainingBits >= 5 * 8)
             {
