@@ -48,7 +48,7 @@ namespace IoTPayloadDecoder.Decoders.NAS10
             packet.status_field.firmware_error = Helpers.FormatAsValue(_parser.GetBit(), _compact);
             packet.status_field.internal_relay_state = Helpers.FormatAsValue(_parser.GetBit(), _compact);
 
-            packet.downlink_rssi = Helpers.FormatAsValueAndUnit(_parser.GetUInt8(), "dBm", _compact);
+            packet.downlink_rssi = Helpers.FormatAsValueAndUnit(-1 * _parser.GetUInt8(), "dBm", _compact);
             packet.downlink_snr = Helpers.FormatAsValueAndUnit(_parser.GetInt8(), "dB", _compact);
             packet.mcu_temperature = Helpers.FormatAsValueAndUnit(_parser.GetInt8(), "\u00B0C", _compact);
 
