@@ -19,7 +19,7 @@ namespace IoTPayloadDecoder
         private int _bytePos;
         private byte _bitOffset;
 
-        private static byte[] _hexLookup => new byte[]
+        private static byte[] HexLookup => new byte[]
         {
             0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
             0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
@@ -172,6 +172,7 @@ namespace IoTPayloadDecoder
         public uint GetUInt32BE()
         {
             byte[] bytes = new byte[4];
+            // ThrowIfNotEnoughBits not needed here since it's called in GetUInt8
             bytes[3] = GetUInt8();
             bytes[2] = GetUInt8();
             bytes[1] = GetUInt8();
@@ -182,6 +183,7 @@ namespace IoTPayloadDecoder
         public int GetInt32BE()
         {
             byte[] bytes = new byte[4];
+            // ThrowIfNotEnoughBits not needed here since it's called in GetUInt8
             bytes[3] = GetUInt8();
             bytes[2] = GetUInt8();
             bytes[1] = GetUInt8();
@@ -218,20 +220,11 @@ namespace IoTPayloadDecoder
 
         public bool GetBit()
         {
-            if (_bitOffset >= 8)
-            {
-                MoveToNextByte();
-            }
-            ThrowIfNotEnoughBits(1);
-            return ((_bytes[_bytePos] >> _bitOffset++) & 1) == 1;
+            return GetBits(1) == 1;
         }
 
         public byte GetBits(int bitCount)
         {
-            if (bitCount < 2)
-            {
-                throw new ArgumentException("Cannot extract less than 2 bits. To extract one bit, use GetBit().", nameof(bitCount));
-            }
             if (bitCount > 7)
             {
                 throw new ArgumentException("Cannot extract more than 7 bits at a time.", nameof(bitCount));
@@ -241,7 +234,7 @@ namespace IoTPayloadDecoder
                 MoveToNextByte();
             }
             ThrowIfNotEnoughBits(bitCount);
-            byte mask = (byte)(Math.Pow(2, bitCount) - 1);
+            byte mask = (byte)((1 << bitCount) - 1);
             byte result = (byte)((_bytes[_bytePos] >> _bitOffset) & mask);
             _bitOffset += (byte)bitCount;
             return result;
@@ -287,8 +280,8 @@ namespace IoTPayloadDecoder
             int j = 0;
             while (j < bytes.Length)
             {
-                byte lo = _hexLookup[(byte)hex[i + 1]];
-                byte hi = _hexLookup[(byte)hex[i]];
+                byte lo = HexLookup[(byte)hex[i + 1]];
+                byte hi = HexLookup[(byte)hex[i]];
                 bytes[j++] = (byte)(hi << 4 | lo);
                 i += 2;
             }
