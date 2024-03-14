@@ -178,7 +178,7 @@ namespace IoTPayloadDecoder.Decoders.Elsys
         {
             if (_compact)
             {
-                ((IDictionary<string,object>)_result).Add(name, string.Concat(value, " " , unit.ToUnitString()));
+                ((IDictionary<string,object>)_result).Add(name, value);
             }
             else
             {
