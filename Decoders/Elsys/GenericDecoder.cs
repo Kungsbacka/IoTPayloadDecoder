@@ -185,7 +185,12 @@ namespace IoTPayloadDecoder.Decoders.Elsys
                 dynamic tmp = new ExpandoObject();
                 tmp.value = value;
                 tmp.unit = unit.ToUnitString();
-                ((IDictionary<string, object>)_result).Add(name, tmp);
+
+                //There has been cases with mutliple "debug" types resulting in exceptions
+                if (!((IDictionary<string, object>)_result).ContainsKey(name))
+                {
+                    ((IDictionary<string, object>)_result).Add(name, tmp);
+                }
             }
         }
     }
