@@ -48,6 +48,16 @@ namespace IoTPayloadDecoder
             {
                 return new Decoders.Elsys.GenericDecoder();
             }
+            if (model == DeviceModel.LHi110)
+            {
+                switch (port)
+                {
+                    case 2:
+                        return new Decoders.LHi110.UsagePacketDecoder();
+                    default:
+                        throw new ArgumentException("No decoder found for port");
+                }
+            }
             throw new ArgumentException("No decoder found for model");
         }
     }
