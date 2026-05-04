@@ -53,7 +53,7 @@ namespace IoTPayloadDecoder
                 switch (port)
                 {
                     case 2:
-                        return new Decoders.LHi110.UsagePacketDecoder();
+                        return new Decoders.LHi110.Port2PeriodicDataDecoder();
                     default:
                         throw new ArgumentException("No decoder found for port");
                 }

@@ -4,7 +4,7 @@ using System.Dynamic;
 
 namespace IoTPayloadDecoder.Decoders.LHi110
 {
-    public class UsagePacketDecoder : IPayloadDecoder
+    public class Port2PeriodicDataDecoder : IPayloadDecoder
     {
         public static int Port = 2;
 
