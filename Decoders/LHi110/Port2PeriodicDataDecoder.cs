@@ -6,11 +6,12 @@ namespace IoTPayloadDecoder.Decoders.LHi110
 {
     public class Port2PeriodicDataDecoder : IPayloadDecoder
     {
-        public static int Port = 2;
+        public const int Port = 2;
 
         private List<string> _warnings;
         private PayloadParser _parser;
         private bool _compact;
+        private dynamic _result;
 
         public dynamic Decode(string payloadString, bool compact)
         {
@@ -22,81 +23,64 @@ namespace IoTPayloadDecoder.Decoders.LHi110
             _warnings = new List<string>();
             _parser = new PayloadParser(payloadString);
             _compact = compact;
+            _result = new ExpandoObject();
 
-            dynamic result = DecodeUsagePacket();
-            result.warnings = _warnings.ToArray();
-            return result;
+            DecodePeriodicData();
+
+            _result.warnings = _warnings.ToArray();
+            return _result;
         }
 
-        private dynamic DecodeUsagePacket()
+        private void DecodePeriodicData()
         {
-            dynamic data = new ExpandoObject();
+            byte messageFormat = _parser.GetUInt8();
+            AddResult("messageFormat", messageFormat, Unit.Count);
 
-            byte msgType = _parser.GetUInt8();
-            uint timeStamp = _parser.GetUInt32BE();
-
-            data.msgType = msgType;
-            data.timeStamp = timeStamp;
-            data.timeString = FormatUtcTime(timeStamp);
-
-            switch (msgType)
+            //Oberoende av messageType, kommer med alla typer 1-9
+            AddResult("meterTimeUtc", _parser.GetUnixEpochBE(), Unit.Unknown);
+  
+            switch (messageFormat)
             {
                 case 0x01:
-                    DecodeMsgType1(data);
+                    DecodeReportFormat1();
                     break;
 
                 default:
-                    _warnings.Add($"Unsupported message type: 0x{msgType:X2}");
+                    _warnings.Add($"Unsupported message format: 0x{messageFormat:X2}");
                     break;
             }
-
-            dynamic result = new ExpandoObject();
-            result.data = data;
-            return result;
         }
 
-        private void DecodeMsgType1(dynamic data)
+        private void DecodeReportFormat1()
         {
-            data.activeImportReading = ReadUInt40BE();
+            AddResult("activeImportReading", _parser.GetUInt40BE(), Unit.WattHour);
 
-            data.actL1ImportPowerPeak = DecodePower(_parser.GetUInt16BE());
-            data.actL1ImportPowerAver = DecodePower(_parser.GetUInt16BE());
-            data.actL2ImportPowerPeak = DecodePower(_parser.GetUInt16BE());
-            data.actL2ImportPowerAver = DecodePower(_parser.GetUInt16BE());
-            data.actL3ImportPowerPeak = DecodePower(_parser.GetUInt16BE());
-            data.actL3ImportPowerAver = DecodePower(_parser.GetUInt16BE());
+            AddResult("actL1ImportPowerPeak", DecodePower(_parser.GetUInt16BE()), Unit.Watt);
+            AddResult("actL1ImportPowerAver", DecodePower(_parser.GetUInt16BE()), Unit.Watt);
+            AddResult("actL2ImportPowerPeak", DecodePower(_parser.GetUInt16BE()), Unit.Watt);
+            AddResult("actL2ImportPowerAver", DecodePower(_parser.GetUInt16BE()), Unit.Watt);
+            AddResult("actL3ImportPowerPeak", DecodePower(_parser.GetUInt16BE()), Unit.Watt);
+            AddResult("actL3ImportPowerAver", DecodePower(_parser.GetUInt16BE()), Unit.Watt);
 
             uint voltagePacked = _parser.GetUInt32BE();
             int[] voltages = DecodeVoltages(voltagePacked);
-            data.l1VoltageAver_mV = voltages[0];
-            data.l2VoltageAver_mV = voltages[1];
-            data.l3VoltageAver_mV = voltages[2];
+
+            AddResult("l1VoltageAver", voltages[0], Unit.Millivolt);
+            AddResult("l2VoltageAver", voltages[1], Unit.Millivolt);
+            AddResult("l3VoltageAver", voltages[2], Unit.Millivolt);
 
             uint currentPacked = _parser.GetUInt32BE();
             long[] currents = DecodeCurrents(currentPacked);
-            data.l1CurrentPeak_mA = currents[0];
-            data.l2CurrentPeak_mA = currents[1];
-            data.l3CurrentPeak_mA = currents[2];
+
+            AddResult("l1CurrentPeak", currents[0], Unit.Milliampere);
+            AddResult("l2CurrentPeak", currents[1], Unit.Milliampere);
+            AddResult("l3CurrentPeak", currents[2], Unit.Milliampere);
         }
 
         // ===== Helpers =====
-        private ulong ReadUInt40BE()
-        {
-            ulong b0 = _parser.GetUInt8();
-            ulong b1 = _parser.GetUInt8();
-            ulong b2 = _parser.GetUInt8();
-            ulong b3 = _parser.GetUInt8();
-            ulong b4 = _parser.GetUInt8();
-
-            return (b0 << 32) |
-                   (b1 << 24) |
-                   (b2 << 16) |
-                   (b3 << 8) |
-                   b4;
-        }
-
         private static int DecodePower(ushort rawValue)
         {
+            // Om högsta biten (bit 15) är satt så skall värdet skalas upp med 100.
             bool useHundreds = (rawValue & (1 << 15)) != 0;
 
             if (useHundreds)
@@ -109,33 +93,63 @@ namespace IoTPayloadDecoder.Decoders.LHi110
 
         private static int[] DecodeVoltages(uint packed)
         {
-            int l1 = (int)((packed & 0x3FF00000) >> 20) * 250;
-            int l2 = (int)((packed & 0x000FFC00) >> 10) * 250;
-            int l3 = (int)(packed & 0x000003FF) * 250;
+            // L1, L2 och L3 ligger ihoppackade på ett gemensamt 32-bitars tal.
+            // Binärtalet kan visualiseras enligt nedan:
+            // [ 2 oanvända bitar ][ L1: 10 bitar ][ L2: 10 bitar ][ L3: 10 bitar ]
+            int l1Raw = (int)((packed & 0x3FF00000) >> 20);
+            int l2Raw = (int)((packed & 0x000FFC00) >> 10);
+            int l3Raw = (int)(packed & 0x000003FF);
 
-            if (l1 != 0) l1 += 20000;
-            if (l2 != 0) l2 += 20000;
-            if (l3 != 0) l3 += 20000;
+            return new[]
+            {
+                DecodeVoltage(l1Raw),
+                DecodeVoltage(l2Raw),
+                DecodeVoltage(l3Raw)
+            };
+        }
 
-            return new[] { l1, l2, l3 };
+        private static int DecodeVoltage(int raw)
+        {
+            // Om råvärdet är 0 så skall ingen offset läggas på. Om råvärdet är större än 0
+            // så skall råvärdet skalas med faktor 250, och adderas med en offset på 20000 (mV)
+            if (raw == 0)
+            {
+                return 0;
+            }
+
+            return raw * 250 + 20000;
         }
 
         private static long[] DecodeCurrents(uint packed)
         {
-            int scaleIndex = (int)((packed & 0xC0000000) >> 30);
-            long scaleFactor = (long)Math.Pow(10, scaleIndex);
+            //int scaleIndex = (int)((packed & 0xC0000000) >> 30);
+            //long scaleFactor = (long)Math.Pow(10, scaleIndex);
 
-            long l1 = ((packed & 0x3FF00000) >> 20) * 100L * scaleFactor;
-            long l2 = ((packed & 0x000FFC00) >> 10) * 100L * scaleFactor;
-            long l3 = (packed & 0x000003FF) * 100L * scaleFactor;
+            long l1 = ((packed & 0x3FF00000) >> 20) * 100L;
+            long l2 = ((packed & 0x000FFC00) >> 10) * 100L;
+            long l3 = (packed & 0x000003FF) * 100L;
 
             return new[] { l1, l2, l3 };
         }
-
-        private static string FormatUtcTime(uint unixSeconds)
+        private void AddResult<T>(string name, T value, Unit unit)
         {
-            var date = DateTimeOffset.FromUnixTimeSeconds(unixSeconds).UtcDateTime;
-            return date.ToString("yyyy-MM-dd HH:mm:ss");
+            if (_compact)
+            {
+                ((IDictionary<string, object>)_result).Add(name, value);
+            }
+            else
+            {
+                dynamic tmp = new ExpandoObject();
+                tmp.value = value;
+                tmp.unit = unit.ToUnitString();
+
+                //There has been cases with mutliple "debug" types resulting in exceptions
+                if (!((IDictionary<string, object>)_result).ContainsKey(name))
+                {
+                    ((IDictionary<string, object>)_result).Add(name, tmp);
+                }
+            }
         }
+
     }
 }

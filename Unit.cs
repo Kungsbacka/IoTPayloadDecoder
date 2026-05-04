@@ -30,7 +30,8 @@ namespace IoTPayloadDecoder
         [Description("Wh")] WattHour,
 
         [Description("1/63G")] OneSixtythirdG,
-        [Description("bool")] Boolean
+        [Description("bool")] Boolean,
+        [Description("mA")] Milliampere
     }
 
     public static class UnitExtension

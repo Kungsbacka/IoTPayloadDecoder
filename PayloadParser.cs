@@ -261,7 +261,13 @@
                 return DateTimeOffset.FromUnixTimeSeconds(epoch).DateTime;
             }
 
-            private void MoveToNextByte()
+            public DateTime GetUnixEpochBE()
+            {
+                uint epoch = GetUInt32BE();
+                return DateTimeOffset.FromUnixTimeSeconds(epoch).DateTime;
+            }
+
+        private void MoveToNextByte()
             {
                 if (_bitOffset == 0)
                 {
