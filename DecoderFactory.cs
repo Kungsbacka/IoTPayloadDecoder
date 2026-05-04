@@ -52,6 +52,8 @@ namespace IoTPayloadDecoder
             {
                 switch (port)
                 {
+                    case 1:
+                        return new Decoders.LHi110.Port1ProtocolDataDecoder();
                     case 2:
                         return new Decoders.LHi110.Port2PeriodicDataDecoder();
                     default:
