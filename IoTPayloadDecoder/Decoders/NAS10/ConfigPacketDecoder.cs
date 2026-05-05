@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Dynamic;
-using System.Text;
 
 namespace IoTPayloadDecoder.Decoders.NAS10
 {
@@ -36,7 +34,7 @@ namespace IoTPayloadDecoder.Decoders.NAS10
                     result = DecodeDigConfig();
                     break;
                 case 0x05:
-                    result.packet_type =  Helpers.FormatAsValue("open_drain_out_config_packet", _compact);
+                    result.packet_type = Helpers.FormatAsValue("open_drain_out_config_packet", _compact);
                     var list = new List<dynamic>();
                     while (_parser.RemainingBits > 0)
                     {
@@ -54,12 +52,12 @@ namespace IoTPayloadDecoder.Decoders.NAS10
                     // decodeProfileConfig(dataView, result, err);
                     throw new NotImplementedException("decodeProfileConfig");
                 case 0x09:
-					// decodeTimeConfig(dataView, result);
-					throw new NotImplementedException("decodeTimeConfig");
-				case 0x0A:
-					// decodeLegacyDefaultsConfig(dataView, result);
-					throw new NotImplementedException("decodeLegacyDefaultsConfig");
-				case 0x0B:
+                    // decodeTimeConfig(dataView, result);
+                    throw new NotImplementedException("decodeTimeConfig");
+                case 0x0A:
+                    // decodeLegacyDefaultsConfig(dataView, result);
+                    throw new NotImplementedException("decodeLegacyDefaultsConfig");
+                case 0x0B:
                     // decodeUsageConfig(dataView, result);
                     throw new NotImplementedException("decodeUsageConfig");
                 case 0x0C:
@@ -90,7 +88,7 @@ namespace IoTPayloadDecoder.Decoders.NAS10
                     _errorList.Add("invalid_header");
                     break;
             }
-            
+
             result.errors = _errorList.ToArray();
             return result;
         }
