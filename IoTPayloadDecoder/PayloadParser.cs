@@ -257,13 +257,13 @@ namespace IoTPayloadDecoder
         public DateTime GetUnixEpoch()
         {
             uint epoch = GetUInt32();
-            return DateTimeOffset.FromUnixTimeSeconds(epoch).DateTime;
+            return DateTimeOffset.FromUnixTimeSeconds(epoch).UtcDateTime;
         }
 
         public DateTime GetUnixEpochBE()
         {
             uint epoch = GetUInt32BE();
-            return DateTimeOffset.FromUnixTimeSeconds(epoch).DateTime;
+            return DateTimeOffset.FromUnixTimeSeconds(epoch).UtcDateTime;
         }
 
         private void MoveToNextByte()
