@@ -28,6 +28,7 @@ namespace IoTPayloadDecoder
         [Description("V")] Volt,
         [Description("W")] Watt,
         [Description("Wh")] WattHour,
+        [Description("L")] Liter,
 
         [Description("1/63G")] OneSixtythirdG,
         [Description("bool")] Boolean,
