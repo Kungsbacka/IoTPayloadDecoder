@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Dynamic;
-using System.Text;
 
 namespace IoTPayloadDecoder.Decoders.NAS11
 {
@@ -33,14 +31,14 @@ namespace IoTPayloadDecoder.Decoders.NAS11
                     result = DecodeLdrConfig();
                     break;
                 case 0x03: //Klar
-                    result = DecodeDigConfig();     
+                    result = DecodeDigConfig();
                     break;
                 case 0x05: //Klar
-                    result.packet_type =  Helpers.FormatAsValue("open_drain_out_config_packet", _compact);
+                    result.packet_type = Helpers.FormatAsValue("open_drain_out_config_packet", _compact);
                     var list = new List<dynamic>();
                     while (_parser.RemainingBits > 0)
                     {
-                        list.Add(DecodeOdRelaySwStep());    
+                        list.Add(DecodeOdRelaySwStep());
                     }
                     result.switching_steps = list.ToArray();
                     break;
@@ -50,7 +48,7 @@ namespace IoTPayloadDecoder.Decoders.NAS11
                 case 0x09: //Se kommentar
                     result = DecodeTimeConfig();
                     break;
-				case 0x0B: //Klar
+                case 0x0B: //Klar
                     result = DecodeUsageConfig();
                     break;
                 case 0x0D: //Klar
@@ -105,7 +103,7 @@ namespace IoTPayloadDecoder.Decoders.NAS11
                     _errorList.Add("invalid_header");
                     break;
             }
-            
+
             result.errors = _errorList.ToArray();
             return result;
         }
@@ -155,7 +153,7 @@ namespace IoTPayloadDecoder.Decoders.NAS11
             dynamic result = new ExpandoObject();
             result.packet_type = Helpers.FormatAsValue("holiday_config_packet", _compact);
             result.holidays = new List<dynamic>();
-            
+
             for (int i = 0; i < _parser.GetUInt8(); i++)
             {
                 byte month = _parser.GetUInt8();
@@ -175,7 +173,7 @@ namespace IoTPayloadDecoder.Decoders.NAS11
         {
             dynamic result = new ExpandoObject();
             result.packet_type = Helpers.FormatAsValue("fade_config_packet", _compact);
-            
+
             List<double> lookup = new List<double>()
             { 0.5, 0.71, 1.0, 1.41, 2.0, 2.83, 4.0, 5.66, 8.0, 11.31, 16.0, 22.63, 32.0, 45.25, 64.0, 90.51 };
             byte fade_dur = _parser.GetUInt8();
@@ -315,7 +313,7 @@ namespace IoTPayloadDecoder.Decoders.NAS11
             {
                 result.mains_voltage = Helpers.FormatAsValueAndUnit(volt, "V", _compact);
             }
-       
+
             return result;
         }
         private dynamic DecodeBootDelayConfig()
@@ -387,12 +385,12 @@ namespace IoTPayloadDecoder.Decoders.NAS11
             }
 
             result.multicast_device = Helpers.FormatAsValue(dev, _compact);
-            
+
             //TODO
             result.devaddr = Helpers.FormatAsValue(_parser.GetHexString(4), _compact); //Reverse
             result.nwkskey = Helpers.FormatAsValue(_parser.GetHexString(16), _compact);
             result.appskey = Helpers.FormatAsValue(_parser.GetHexString(16), _compact);
-            
+
 
             return result;
         }
@@ -445,7 +443,7 @@ namespace IoTPayloadDecoder.Decoders.NAS11
         private dynamic DecodeZenithStep(sbyte angle, byte dim)
         {
             dynamic step = new ExpandoObject();
-            
+
             step.zenith_angle = Helpers.FormatAsValueRawAndUnit(
                 value: (angle / 6 + 90).ToString("N2"),
                 raw: angle,
@@ -465,7 +463,7 @@ namespace IoTPayloadDecoder.Decoders.NAS11
         {
             dynamic result = new ExpandoObject();
             result.packet_type = Helpers.FormatAsValue("calendar_config_packet", _compact);
-            
+
             byte sunrise = _parser.GetBits(4);
             byte sunset = _parser.GetBits(4);
 
@@ -489,7 +487,7 @@ namespace IoTPayloadDecoder.Decoders.NAS11
                 byte dim = _parser.GetUInt8();
                 result.sunrise_steps.Add(DecodeZenithStep(angle, dim));
             }
-           
+
             return result;
         }
         private dynamic DecodeDimmingStep()
@@ -555,7 +553,7 @@ namespace IoTPayloadDecoder.Decoders.NAS11
             {
                 result.dimming_steps.Add(DecodeDimmingStep());
             }
-            
+
             return result;
         }
 

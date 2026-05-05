@@ -1,12 +1,5 @@
-﻿using IoTPayloadDecoder.Decoders.LHi110;
-using Microsoft.VisualStudio.TestPlatform.Utilities;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Text.Json;
+﻿using IoTPayloadDecoder.Tests.TestHelpers;
 using Xunit.Abstractions;
-using Xunit.Sdk;
-using IoTPayloadDecoder.Tests.TestHelpers;
 
 namespace IoTPayloadDecoder.Tests.Decoders
 {
@@ -14,10 +7,10 @@ namespace IoTPayloadDecoder.Tests.Decoders
     {
         private readonly ITestOutputHelper _output;
 
-        private readonly IPayloadDecoder _port1ProtocolDataDecoder = 
+        private readonly IPayloadDecoder _port1ProtocolDataDecoder =
             DecoderFactory.Create(DeviceModel.LHi110, 1);
 
-        private readonly IPayloadDecoder _port2PeriodicDataDecoder = 
+        private readonly IPayloadDecoder _port2PeriodicDataDecoder =
             DecoderFactory.Create(DeviceModel.LHi110, 2);
 
         public LHi110Tests(ITestOutputHelper output)
@@ -31,6 +24,8 @@ namespace IoTPayloadDecoder.Tests.Decoders
             var payload = "016774858000000186A00064005000C800A0012C00F0398E739A00A0501E";
 
             dynamic result = _port2PeriodicDataDecoder.Decode(payload, compact: false);
+
+            JsonTestOutput.PrintResult(_output, result);
 
             Assert.Equal(1, result.messageFormat.value);
             Assert.Equal((ulong)100000, result.activeImportReading.value);

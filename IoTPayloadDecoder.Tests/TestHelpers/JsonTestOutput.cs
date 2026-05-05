@@ -3,7 +3,7 @@ using Xunit.Abstractions;
 
 namespace IoTPayloadDecoder.Tests.TestHelpers
 {
-    internal static class TestOutput
+    internal static class JsonTestOutput
     {
         public static void PrintResult(ITestOutputHelper output, dynamic result)
         {
