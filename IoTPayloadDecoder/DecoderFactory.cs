@@ -60,6 +60,16 @@ namespace IoTPayloadDecoder
                         throw new ArgumentException("No decoder found for port");
                 }
             }
+            if (model == DeviceModel.QalcosonicW1)
+            {
+                switch (port)
+                {
+                    case 100:
+                        return new Decoders.QalcosonicW1.Port100RegularDataDecoder();
+                    default:
+                        throw new ArgumentException("No decoder found for port");
+                }
+            }
             throw new ArgumentException("No decoder found for model");
         }
     }
