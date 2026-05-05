@@ -4,14 +4,9 @@ using System.Dynamic;
 
 namespace IoTPayloadDecoder.Decoders.LHi110
 {
-    public class Port2PeriodicDataDecoder : IPayloadDecoder
+    public class Port2PeriodicDataDecoder : PayloadDecoderBase, IPayloadDecoder
     {
-        public const int Port = 2;
-
-        private List<string> _warnings;
         private PayloadParser _parser;
-        private bool _compact;
-        private dynamic _result;
 
         public dynamic Decode(string payloadString, bool compact)
         {
@@ -20,15 +15,13 @@ namespace IoTPayloadDecoder.Decoders.LHi110
                 throw new ArgumentException("Payload string cannot be empty", nameof(payloadString));
             }
 
-            _warnings = new List<string>();
             _parser = new PayloadParser(payloadString);
-            _compact = compact;
-            _result = new ExpandoObject();
+            InitResult(compact);
 
             DecodePeriodicData();
 
-            _result.warnings = _warnings.ToArray();
-            return _result;
+            return FinishResult();
+
         }
 
         private void DecodePeriodicData()
@@ -37,7 +30,7 @@ namespace IoTPayloadDecoder.Decoders.LHi110
             AddResult("messageFormat", messageFormat, Unit.Count);
 
             //Oberoende av messageType, kommer med alla typer 1-9
-            AddResult("meterTimeUtc", _parser.GetUnixEpochBE(), Unit.Unknown);
+            AddResult("meterTimeUtc", _parser.GetUnixEpochBE());
   
             switch (messageFormat)
             {
@@ -46,7 +39,7 @@ namespace IoTPayloadDecoder.Decoders.LHi110
                     break;
 
                 default:
-                    _warnings.Add($"Unsupported message format: 0x{messageFormat:X2}");
+                    AddWarning($"Unsupported message format: 0x{messageFormat:X2}");
                     break;
             }
         }
@@ -122,6 +115,8 @@ namespace IoTPayloadDecoder.Decoders.LHi110
 
         private static long[] DecodeCurrents(uint packed)
         {
+            //TODO: Verify with supplier whether bits 31-30 should be used as current scaleIndex.
+
             //int scaleIndex = (int)((packed & 0xC0000000) >> 30);
             //long scaleFactor = (long)Math.Pow(10, scaleIndex);
 
@@ -131,25 +126,5 @@ namespace IoTPayloadDecoder.Decoders.LHi110
 
             return new[] { l1, l2, l3 };
         }
-        private void AddResult<T>(string name, T value, Unit unit)
-        {
-            if (_compact)
-            {
-                ((IDictionary<string, object>)_result).Add(name, value);
-            }
-            else
-            {
-                dynamic tmp = new ExpandoObject();
-                tmp.value = value;
-                tmp.unit = unit.ToUnitString();
-
-                //There has been cases with mutliple "debug" types resulting in exceptions
-                if (!((IDictionary<string, object>)_result).ContainsKey(name))
-                {
-                    ((IDictionary<string, object>)_result).Add(name, tmp);
-                }
-            }
-        }
-
     }
 }
