@@ -28,8 +28,7 @@ namespace IoTPayloadDecoder.Tests.Decoders
         [Fact]
         public void Decode_Port2MessageFormat1_ShouldDecodeExcpetedValues()
         {
-            var payload =
-            "016774858000000186A00064005000C800A0012C00F0398E739A00A0501E";
+            var payload = "016774858000000186A00064005000C800A0012C00F0398E739A00A0501E";
 
             dynamic result = _port2PeriodicDataDecoder.Decode(payload, compact: false);
 
