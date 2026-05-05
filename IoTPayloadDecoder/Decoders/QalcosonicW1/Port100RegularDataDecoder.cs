@@ -28,7 +28,7 @@ namespace IoTPayloadDecoder.Decoders.QalcosonicW1
 
             AddResult("meterTimeUtc", time);
             AddResult("status", status, Unit.Count);
-            AddResult("status", DecodeStatus(status));
+            AddResult("statusText", DecodeStatus(status));
             AddResult("currentVolume", _parser.GetUInt32(), Unit.Liter);
             AddResult("pastVolume1", _parser.GetUInt32(), Unit.Liter);
             AddResult("pastVolume2", _parser.GetUInt32(), Unit.Liter);
