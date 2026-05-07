@@ -57,7 +57,7 @@ namespace IoTPayloadDecoder.Decoders.CMi4170
 				byte difNorm = (byte)(dif & ~0x30); // dataInfoByteWithoutError
 
 
-				// Energi (INT32)
+				// Energy (INT32)
 				if (difNorm == 0x04 && TYPE_ENERGY.Contains(vif))
 				{
 					// Check if extra byte is used
@@ -77,7 +77,7 @@ namespace IoTPayloadDecoder.Decoders.CMi4170
 						AddResult("energy", ApplyEnergyScaling(raw, vif), Unit.KiloWattHour);
 				}
 
-				// Volym (INT32)
+				// Volume (INT32)
 				else if (difNorm == 0x04 && TYPE_VOLUME.Contains(vif))
 				{
 					int raw = _parser.GetInt32();
@@ -87,7 +87,7 @@ namespace IoTPayloadDecoder.Decoders.CMi4170
 						AddResult("volume", ApplyVolumeScaling(raw, vif), Unit.CubicMeter);
 				}
 
-				// Effekt (INT16)
+				// Power (INT16)
 				else if (difNorm == 0x02 && TYPE_POWER.Contains(vif))
 				{
 					short raw = _parser.GetInt16();
@@ -97,7 +97,7 @@ namespace IoTPayloadDecoder.Decoders.CMi4170
 						AddResult("power", ApplyPowerScaling(raw, vif), Unit.Watt);
 				}
 
-				// Flöde (INT16)
+				// Flow (INT16)
 				else if (difNorm == 0x02 && TYPE_FLOW.Contains(vif))
 				{
 					short raw = _parser.GetInt16();
@@ -107,7 +107,7 @@ namespace IoTPayloadDecoder.Decoders.CMi4170
 						AddResult("flow", ApplyFlowScaling(raw, vif), Unit.CubicMeterPerHour);
 				}
 
-				// Framledningstemperatur (INT16)
+				// Forward temperature (INT16)
 				else if (difNorm == 0x02 && TYPE_FWTEMP.Contains(vif))
 				{
 					short raw = _parser.GetInt16();
@@ -117,7 +117,7 @@ namespace IoTPayloadDecoder.Decoders.CMi4170
 						AddResult("forwardTemperature", ApplyTemperatureScaling(raw, vif, 0x58), Unit.Celsius);
 				}
 
-				// Returtemperatur (INT16)
+				// Return temperature (INT16)
 				else if (difNorm == 0x02 && TYPE_RTTEMP.Contains(vif))
 				{
 					short raw = _parser.GetInt16();
@@ -127,16 +127,16 @@ namespace IoTPayloadDecoder.Decoders.CMi4170
 						AddResult("returnTemperature", ApplyTemperatureScaling(raw, vif, 0x5C), Unit.Celsius);
 				}
 
-				// Mätar-ID (INT32)
+				// Meter ID (INT32)
 				else if (difNorm == 0x0C && vif == 0x78)
 				{
-					// Läs 4 bytes och vänd ordningen (little-endian)
+					// Read 4 bytes in reverse order (little-endian)
 					byte b0 = _parser.GetUInt8();
 					byte b1 = _parser.GetUInt8();
 					byte b2 = _parser.GetUInt8();
 					byte b3 = _parser.GetUInt8();
 
-					// Bygg mätar-ID genom att läsa varje nibble som en decimalsiffra
+					// Build meter ID by reading each nibble as a decimal digit
 					string meterId = string.Format("{0}{1}{2}{3}{4}{5}{6}{7}",
 						b3 >> 4, b3 & 0x0F,
 						b2 >> 4, b2 & 0x0F,
@@ -147,10 +147,10 @@ namespace IoTPayloadDecoder.Decoders.CMi4170
 					AddResult("meterId", meterId, Unit.Count);
 				}
 
-				// Felkoder (header: 01 FD 17, värde: 1 byte)
+				// Error codes (header: 01 FD 17, value: 1 byte)
 				else if (difNorm == 0x01 && vif == 0xFD)
 				{
-					_parser.GetUInt8(); // hoppa över 0x17
+					_parser.GetUInt8(); // Skip 0x17
 					byte errorFlags = _parser.GetUInt8();
 					AddResult("errorFlags", errorFlags, Unit.Count);
 				}
@@ -158,7 +158,6 @@ namespace IoTPayloadDecoder.Decoders.CMi4170
 				else
 				{
 					AddWarning($"Unknown DIB: DIF=0x{dif:X2}, VIF=0x{vif:X2}");
-					break;
 				}
 			}
 		}
