@@ -29,8 +29,12 @@ namespace IoTPayloadDecoder
         [Description("W")] Watt,
         [Description("Wh")] WattHour,
         [Description("L")] Liter,
+		[Description("kWh")] KiloWattHour,
+		[Description("m³")] CubicMeter,
+		[Description("m³/h")] CubicMeterPerHour,
+		[Description("°C")] Celsius,
 
-        [Description("1/63G")] OneSixtythirdG,
+		[Description("1/63G")] OneSixtythirdG,
         [Description("bool")] Boolean,
         [Description("mA")] Milliampere
     }

@@ -7,5 +7,6 @@
         Nas11,          // NAS UL20xx firmware version 1.1
         LHi110,         // HAN-port adapter
         QalcosonicW1,   // Vattenmätare
+        CMi4170         // Värmemängdsmätare
     }
 }
