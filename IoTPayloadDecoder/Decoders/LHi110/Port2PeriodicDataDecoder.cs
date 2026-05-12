@@ -1,12 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Dynamic;
 
 namespace IoTPayloadDecoder.Decoders.LHi110
 {
-    public class Port2PeriodicDataDecoder : PayloadDecoderBase, IPayloadDecoder
+    public class Port2PeriodicDataDecoder : IPayloadDecoder
     {
         private PayloadParser _parser;
+        private DecodingResult _decodingResult;
 
         public dynamic Decode(string payloadString, bool compact)
         {
@@ -16,21 +15,21 @@ namespace IoTPayloadDecoder.Decoders.LHi110
             }
 
             _parser = new PayloadParser(payloadString);
-            InitResult(compact);
+            _decodingResult = new DecodingResult(compact);
 
             DecodePeriodicData();
 
-            return FinishResult();
+            return _decodingResult.FinishResult();
 
         }
 
         private void DecodePeriodicData()
         {
             byte messageFormat = _parser.GetUInt8();
-            AddResult("messageFormat", messageFormat, Unit.Count);
+            _decodingResult.AddResult("messageFormat", messageFormat, Unit.Count);
 
             //Oberoende av messageType, kommer med alla typer 1-9
-            AddResult("meterTimeUtc", _parser.GetUnixEpochBE());
+            _decodingResult.AddResult("meterTimeUtc", _parser.GetUnixEpochBE());
   
             switch (messageFormat)
             {
@@ -39,35 +38,35 @@ namespace IoTPayloadDecoder.Decoders.LHi110
                     break;
 
                 default:
-                    AddWarning($"Unsupported message format: 0x{messageFormat:X2}");
+                    _decodingResult.AddWarning($"Unsupported message format: 0x{messageFormat:X2}");
                     break;
             }
         }
 
         private void DecodeReportFormat1()
         {
-            AddResult("activeImportReading", _parser.GetUInt40BE(), Unit.WattHour);
+            _decodingResult.AddResult("activeImportReading", _parser.GetUInt40BE(), Unit.WattHour);
 
-            AddResult("actL1ImportPowerPeak", DecodePower(_parser.GetUInt16BE()), Unit.Watt);
-            AddResult("actL1ImportPowerAver", DecodePower(_parser.GetUInt16BE()), Unit.Watt);
-            AddResult("actL2ImportPowerPeak", DecodePower(_parser.GetUInt16BE()), Unit.Watt);
-            AddResult("actL2ImportPowerAver", DecodePower(_parser.GetUInt16BE()), Unit.Watt);
-            AddResult("actL3ImportPowerPeak", DecodePower(_parser.GetUInt16BE()), Unit.Watt);
-            AddResult("actL3ImportPowerAver", DecodePower(_parser.GetUInt16BE()), Unit.Watt);
+            _decodingResult.AddResult("actL1ImportPowerPeak", DecodePower(_parser.GetUInt16BE()), Unit.Watt);
+            _decodingResult.AddResult("actL1ImportPowerAver", DecodePower(_parser.GetUInt16BE()), Unit.Watt);
+            _decodingResult.AddResult("actL2ImportPowerPeak", DecodePower(_parser.GetUInt16BE()), Unit.Watt);
+            _decodingResult.AddResult("actL2ImportPowerAver", DecodePower(_parser.GetUInt16BE()), Unit.Watt);
+            _decodingResult.AddResult("actL3ImportPowerPeak", DecodePower(_parser.GetUInt16BE()), Unit.Watt);
+            _decodingResult.AddResult("actL3ImportPowerAver", DecodePower(_parser.GetUInt16BE()), Unit.Watt);
 
             uint voltagePacked = _parser.GetUInt32BE();
             int[] voltages = DecodeVoltages(voltagePacked);
 
-            AddResult("l1VoltageAver", voltages[0], Unit.Millivolt);
-            AddResult("l2VoltageAver", voltages[1], Unit.Millivolt);
-            AddResult("l3VoltageAver", voltages[2], Unit.Millivolt);
+            _decodingResult.AddResult("l1VoltageAver", voltages[0], Unit.Millivolt);
+            _decodingResult.AddResult("l2VoltageAver", voltages[1], Unit.Millivolt);
+            _decodingResult.AddResult("l3VoltageAver", voltages[2], Unit.Millivolt);
 
             uint currentPacked = _parser.GetUInt32BE();
             long[] currents = DecodeCurrents(currentPacked);
 
-            AddResult("l1CurrentPeak", currents[0], Unit.Milliampere);
-            AddResult("l2CurrentPeak", currents[1], Unit.Milliampere);
-            AddResult("l3CurrentPeak", currents[2], Unit.Milliampere);
+            _decodingResult.AddResult("l1CurrentPeak", currents[0], Unit.Milliampere);
+            _decodingResult.AddResult("l2CurrentPeak", currents[1], Unit.Milliampere);
+            _decodingResult.AddResult("l3CurrentPeak", currents[2], Unit.Milliampere);
         }
 
         // ===== Helpers =====

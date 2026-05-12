@@ -2,9 +2,10 @@
 
 namespace IoTPayloadDecoder.Decoders.QalcosonicW1
 {
-    public class Port100RegularDataDecoder : PayloadDecoderBase, IPayloadDecoder
+    public class Port100RegularDataDecoder : IPayloadDecoder
     {
         private PayloadParser _parser;
+        private DecodingResult _decodingResult;
 
         public dynamic Decode(string payloadString, bool compact)
         {
@@ -14,11 +15,11 @@ namespace IoTPayloadDecoder.Decoders.QalcosonicW1
             }
 
             _parser = new PayloadParser(payloadString);
-            InitResult(compact);
+            _decodingResult = new DecodingResult(compact);
 
             DecodeBasicPayload();
 
-            return FinishResult();
+            return _decodingResult.FinishResult();
         }
 
         private void DecodeBasicPayload()
@@ -26,17 +27,17 @@ namespace IoTPayloadDecoder.Decoders.QalcosonicW1
             DateTime time = _parser.GetUnixEpoch();
             byte status = _parser.GetUInt8();
 
-            AddResult("meterTimeUtc", time);
-            AddResult("status", status, Unit.Count);
-            AddResult("statusText", DecodeStatus(status));
-            AddResult("currentVolume", _parser.GetUInt32(), Unit.Liter);
-            AddResult("pastVolume1", _parser.GetUInt32(), Unit.Liter);
-            AddResult("pastVolume2", _parser.GetUInt32(), Unit.Liter);
-            AddResult("pastVolume3", _parser.GetUInt32(), Unit.Liter);
-            AddResult("pastVolume4", _parser.GetUInt32(), Unit.Liter);
-            AddResult("pastVolume5", _parser.GetUInt32(), Unit.Liter);
-            AddResult("pastVolume6", _parser.GetUInt32(), Unit.Liter);
-            AddResult("periodBetweenValues", _parser.GetUInt32(), Unit.Second);
+            _decodingResult.AddResult("meterTimeUtc", time);
+            _decodingResult.AddResult("status", status, Unit.Count);
+            _decodingResult.AddResult("statusText", DecodeStatus(status));
+            _decodingResult.AddResult("currentVolume", _parser.GetUInt32(), Unit.Liter);
+            _decodingResult.AddResult("pastVolume1", _parser.GetUInt32(), Unit.Liter);
+            _decodingResult.AddResult("pastVolume2", _parser.GetUInt32(), Unit.Liter);
+            _decodingResult.AddResult("pastVolume3", _parser.GetUInt32(), Unit.Liter);
+            _decodingResult.AddResult("pastVolume4", _parser.GetUInt32(), Unit.Liter);
+            _decodingResult.AddResult("pastVolume5", _parser.GetUInt32(), Unit.Liter);
+            _decodingResult.AddResult("pastVolume6", _parser.GetUInt32(), Unit.Liter);
+            _decodingResult.AddResult("periodBetweenValues", _parser.GetUInt32(), Unit.Second);
         }
 
         private static string DecodeStatus(byte status)
