@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Dynamic;
-using System.Linq;
 
-namespace IoTPayloadDecoder.Decoders.NAS10
+namespace IoTPayloadDecoder.Decoders.NAS11
 {
     public class BootPacketDecoder : IPayloadDecoder
     {
@@ -168,7 +167,8 @@ namespace IoTPayloadDecoder.Decoders.NAS10
                 case 6: return "dali_analog_no";
                 case 7: return "dali_analog_nc_no";
                 default: throw new PayloadDecodingException("Invalid device config");
-            };
+            }
+            ;
         }
 
         private static string GetErrorCodeText(byte reason)
@@ -199,7 +199,8 @@ namespace IoTPayloadDecoder.Decoders.NAS10
                 case 134: return "step_unsorted";
                 case 135: return "days_overlap";
                 default: return "invalid_error_code";
-            };
+            }
+            ;
         }
     }
 }

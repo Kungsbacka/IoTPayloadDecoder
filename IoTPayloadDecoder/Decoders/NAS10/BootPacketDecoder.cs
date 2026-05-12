@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Dynamic;
-using System.Linq;
 
-namespace IoTPayloadDecoder.Decoders.NAS11
+namespace IoTPayloadDecoder.Decoders.NAS10
 {
     public class BootPacketDecoder : IPayloadDecoder
     {

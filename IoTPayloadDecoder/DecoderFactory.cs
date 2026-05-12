@@ -48,7 +48,39 @@ namespace IoTPayloadDecoder
             {
                 return new Decoders.Elsys.GenericDecoder();
             }
-            throw new ArgumentException("No decoder found for model");
+            if (model == DeviceModel.LHi110)
+            {
+                switch (port)
+                {
+                    case 1:
+                        return new Decoders.LHi110.Port1ProtocolDataDecoder();
+                    case 2:
+                        return new Decoders.LHi110.Port2PeriodicDataDecoder();
+                    default:
+                        throw new ArgumentException("No decoder found for port");
+                }
+            }
+            if (model == DeviceModel.QalcosonicW1)
+            {
+                switch (port)
+                {
+                    case 100:
+                        return new Decoders.QalcosonicW1.Port100RegularDataDecoder();
+                    default:
+                        throw new ArgumentException("No decoder found for port");
+                }
+            }
+			if (model == DeviceModel.CMi4170)
+			{
+				switch (port)
+				{
+					case 2:
+						return new Decoders.CMi4170.DataDecoder();
+					default:
+						throw new ArgumentException("No decoder found for port");
+				}
+			}
+			throw new ArgumentException("No decoder found for model");
         }
     }
 }
