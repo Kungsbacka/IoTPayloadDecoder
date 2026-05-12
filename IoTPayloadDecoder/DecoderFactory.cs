@@ -70,7 +70,17 @@ namespace IoTPayloadDecoder
                         throw new ArgumentException("No decoder found for port");
                 }
             }
-            throw new ArgumentException("No decoder found for model");
+			if (model == DeviceModel.CMi4170)
+			{
+				switch (port)
+				{
+					case 2:
+						return new Decoders.CMi4170.DataDecoder();
+					default:
+						throw new ArgumentException("No decoder found for port");
+				}
+			}
+			throw new ArgumentException("No decoder found for model");
         }
     }
 }
