@@ -31,7 +31,7 @@ namespace IoTPayloadDecoder.Tests.Decoders
             uint pastVolume6 = result.pastVolume6.value;
             uint periodBetweenValues = result.periodBetweenValues.value;
 
-            Assert.Equal(new DateTime(2022, 3, 20, 7, 23, 47), meterTimeUtc);
+            Assert.Equal(new DateTime(2022, 3, 20, 7, 23, 47, DateTimeKind.Utc), meterTimeUtc);
             Assert.Equal((byte)0x10, status);
             Assert.Equal(438651798u, currentVolume);
             Assert.Equal(438651798u, pastVolume1);
