@@ -4,7 +4,7 @@ using System.Dynamic;
 
 namespace IoTPayloadDecoder.Decoders.CMi4170
 {
-	public class DataDecoder : PayloadDecoderBase, IPayloadDecoder
+	public class DataDecoder : IPayloadDecoder
 	{
 		private List<byte> TYPE_ENERGY = new List<byte> { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x0E, 0x0F, 0xFB };
 		private List<byte> TYPE_VOLUME = new List<byte> { 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17 };
@@ -12,7 +12,9 @@ namespace IoTPayloadDecoder.Decoders.CMi4170
 		private List<byte> TYPE_FLOW = new List<byte> { 0x3B, 0x3C, 0x3D, 0x3E, 0x3F };
 		private List<byte> TYPE_FWTEMP = new List<byte> { 0x58, 0x59, 0x5A, 0x5B };
 		private List<byte> TYPE_RTTEMP = new List<byte> { 0x5C, 0x5D, 0x5E, 0x5F };
-		private PayloadParser _parser;
+
+        private DecodingResult _decodingResult;
+        private PayloadParser _parser;
 
 		public dynamic Decode(string payloadString, bool compact)
 		{
@@ -22,17 +24,17 @@ namespace IoTPayloadDecoder.Decoders.CMi4170
 			}
 
 			_parser = new PayloadParser(payloadString);
-			InitResult(compact);
+            _decodingResult = new DecodingResult(compact);
 
 			DecodeData();
 
-			return FinishResult();
+			return _decodingResult.FinishResult();
 		}
 
 		private void DecodeData()
 		{
 			byte messageFormat = _parser.GetUInt8();
-			AddResult("messageFormat", messageFormat, Unit.Count);
+			_decodingResult.AddResult("messageFormat", messageFormat, Unit.Count);
 
 			switch (messageFormat)
 			{
@@ -41,7 +43,7 @@ namespace IoTPayloadDecoder.Decoders.CMi4170
 					break;
 
 				default:
-					AddWarning($"Unsupported message format: 0x{messageFormat:X2}");
+					_decodingResult.AddWarning($"Unsupported message format: 0x{messageFormat:X2}");
 					break;
 			}
 		}
@@ -70,11 +72,11 @@ namespace IoTPayloadDecoder.Decoders.CMi4170
 					int raw = _parser.GetInt32();
 
 					if (errorState)
-						AddWarning("Energy value is in error state");
+						_decodingResult.AddWarning("Energy value is in error state");
 					else if (hasExtension && vifExt != null)
-						AddResult("energy", ApplyEnergyExtensionScaling(raw, vifExt.Value), Unit.KiloWattHour);
+						_decodingResult.AddResult("energy", ApplyEnergyExtensionScaling(raw, vifExt.Value), Unit.KiloWattHour);
 					else
-						AddResult("energy", ApplyEnergyScaling(raw, vif), Unit.KiloWattHour);
+						_decodingResult.AddResult("energy", ApplyEnergyScaling(raw, vif), Unit.KiloWattHour);
 				}
 
 				// Volume (INT32)
@@ -82,9 +84,9 @@ namespace IoTPayloadDecoder.Decoders.CMi4170
 				{
 					int raw = _parser.GetInt32();
 					if (errorState)
-						AddWarning("Volume value is in error state");
+						_decodingResult.AddWarning("Volume value is in error state");
 					else
-						AddResult("volume", ApplyVolumeScaling(raw, vif), Unit.CubicMeter);
+						_decodingResult.AddResult("volume", ApplyVolumeScaling(raw, vif), Unit.CubicMeter);
 				}
 
 				// Power (INT16)
@@ -92,9 +94,9 @@ namespace IoTPayloadDecoder.Decoders.CMi4170
 				{
 					short raw = _parser.GetInt16();
 					if (errorState)
-						AddWarning("Power value is in error state");
+						_decodingResult.AddWarning("Power value is in error state");
 					else
-						AddResult("power", ApplyPowerScaling(raw, vif), Unit.Watt);
+						_decodingResult.AddResult("power", ApplyPowerScaling(raw, vif), Unit.Watt);
 				}
 
 				// Flow (INT16)
@@ -102,9 +104,9 @@ namespace IoTPayloadDecoder.Decoders.CMi4170
 				{
 					short raw = _parser.GetInt16();
 					if (errorState)
-						AddWarning("Flow value is in error state");
+						_decodingResult.AddWarning("Flow value is in error state");
 					else
-						AddResult("flow", ApplyFlowScaling(raw, vif), Unit.CubicMeterPerHour);
+						_decodingResult.AddResult("flow", ApplyFlowScaling(raw, vif), Unit.CubicMeterPerHour);
 				}
 
 				// Forward temperature (INT16)
@@ -112,9 +114,9 @@ namespace IoTPayloadDecoder.Decoders.CMi4170
 				{
 					short raw = _parser.GetInt16();
 					if (errorState)
-						AddWarning("Forward temperature value is in error state");
+						_decodingResult.AddWarning("Forward temperature value is in error state");
 					else
-						AddResult("forwardTemperature", ApplyTemperatureScaling(raw, vif, 0x58), Unit.Celsius);
+						_decodingResult.AddResult("forwardTemperature", ApplyTemperatureScaling(raw, vif, 0x58), Unit.Celsius);
 				}
 
 				// Return temperature (INT16)
@@ -122,9 +124,9 @@ namespace IoTPayloadDecoder.Decoders.CMi4170
 				{
 					short raw = _parser.GetInt16();
 					if (errorState)
-						AddWarning("Return temperature value is in error state");
+						_decodingResult.AddWarning("Return temperature value is in error state");
 					else
-						AddResult("returnTemperature", ApplyTemperatureScaling(raw, vif, 0x5C), Unit.Celsius);
+						_decodingResult.AddResult("returnTemperature", ApplyTemperatureScaling(raw, vif, 0x5C), Unit.Celsius);
 				}
 
 				// Meter ID (INT32)
@@ -144,7 +146,7 @@ namespace IoTPayloadDecoder.Decoders.CMi4170
 						b0 >> 4, b0 & 0x0F
 					);
 
-					AddResult("meterId", meterId, Unit.Count);
+					_decodingResult.AddResult("meterId", meterId, Unit.Count);
 				}
 
 				// Error codes (header: 01 FD 17, value: 1 byte)
@@ -152,12 +154,12 @@ namespace IoTPayloadDecoder.Decoders.CMi4170
 				{
 					_parser.GetUInt8(); // Skip 0x17
 					byte errorFlags = _parser.GetUInt8();
-					AddResult("errorFlags", errorFlags, Unit.Count);
+					_decodingResult.AddResult("errorFlags", errorFlags, Unit.Count);
 				}
 
 				else
 				{
-					AddWarning($"Unknown DIB: DIF=0x{dif:X2}, VIF=0x{vif:X2}");
+					_decodingResult.AddWarning($"Unknown DIB: DIF=0x{dif:X2}, VIF=0x{vif:X2}");
 				}
 			}
 		}
