@@ -80,6 +80,18 @@ namespace IoTPayloadDecoder
 						throw new ArgumentException("No decoder found for port");
 				}
 			}
+			if (model == DeviceModel.EMUProfessionalII)
+			{
+				switch (port)
+				{
+					case 1:
+						return new Decoders.EMUProfessionalII.DataDecoder();
+                    case 100:
+						throw new NotImplementedException("Decoder for port 100 is not yet implemented");
+					default:
+						throw new ArgumentException("No decoder found for port");
+				}
+			}
 			throw new ArgumentException("No decoder found for model");
         }
     }
