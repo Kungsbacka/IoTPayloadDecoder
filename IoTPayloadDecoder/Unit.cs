@@ -27,7 +27,8 @@ namespace IoTPayloadDecoder
         [Description("??")] Unknown,
         [Description("V")] Volt,
         [Description("W")] Watt,
-        [Description("Wh")] WattHour,
+		[Description("kW")] KiloWatt,
+		[Description("Wh")] WattHour,
 		[Description("L")] Liter,
 		[Description("kWh")] KiloWattHour,
 		[Description("m³")] CubicMeter,
@@ -39,7 +40,9 @@ namespace IoTPayloadDecoder
 		[Description("VARh")] Varh,
 		[Description("kVARh")] Kvarh,
 		[Description("cos φ")] Cos,
-		[Description("Hz")] Hertz
+		[Description("Hz")] Hertz,
+		[Description("MJ")] Megajoule,
+        [Description("MCal")] Megacalorie
 	}
 
     public static class UnitExtension
