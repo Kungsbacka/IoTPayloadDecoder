@@ -162,12 +162,12 @@ namespace IoTPayloadDecoder.Tests.Decoders
 		[Fact]
 		public void DecodeStandardFormat_ReturnsExpectedErrorFlags()
 		{
-			// 01FD1700 = No error flags
+			// 01FD1781 = Error flags 0x01 + 0x80
 			string payload = "2404FB0DDC0500000412A05B0000022FC409023CC201025B4100025E41000C787473952101FD1781";
 			var decoder = new DataDecoder();
 			var result = decoder.Decode(payload, false);
 
-			Assert.Equal("Temperature sensor 1 cable break, Low battery", result.errorFlags.value); // 81 = 0x01 + 0x80
+			Assert.Equal("Temperature sensor 1 cable break, Low battery", result.errorFlags.value); 
 		}
 
 		[Fact]
