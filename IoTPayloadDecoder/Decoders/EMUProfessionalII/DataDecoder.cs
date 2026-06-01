@@ -35,50 +35,252 @@ namespace IoTPayloadDecoder.Decoders.EMUProfessionalII
 
 		private void DecodeData()
 		{
-			// Bytes 0–3: timestamp
+			// Bytes 0–3: Timestamp 
 			DateTime timestamp = _parser.GetUnixEpoch();
 			_decodingResult.AddResult("meterTimeUtc", timestamp);
 
-			// Bytes 4–8: active energy import T1
-			byte typeByte = _parser.GetUInt8();
-			if (typeByte != 0x03)
-				throw new PayloadParsingException(
-					$"Expected type 0x03 (Active Energy Import T1), got 0x{typeByte:X2}");
-			_decodingResult.AddResult("activeEnergyImportT1", ApplyEnergyScaling(_parser.GetUInt32()), Unit.KiloWattHour);
-
-			// Bytes 9–13: active energy import T2
-			typeByte = _parser.GetUInt8();
-			if (typeByte != 0x04)
-				throw new PayloadParsingException(
-					$"Expected type 0x04 (Active Energy Import T2), got 0x{typeByte:X2}");
-			_decodingResult.AddResult("activeEnergyImportT2", ApplyEnergyScaling(_parser.GetUInt32()), Unit.KiloWattHour);
-
-			// Bytes 14–18: active energy export T1
-			typeByte = _parser.GetUInt8();
-			if (typeByte != 0x05)
-				throw new PayloadParsingException(
-					$"Expected type 0x05 (Active Energy Export T1), got 0x{typeByte:X2}");
-			_decodingResult.AddResult("activeEnergyExportT1", ApplyEnergyScaling(_parser.GetUInt32()), Unit.KiloWattHour);
-
-			// Bytes 19–23: active energy export T2
-			typeByte = _parser.GetUInt8();
-			if (typeByte != 0x06)
-				throw new PayloadParsingException(
-					$"Expected type 0x06 (Active Energy Export T2), got 0x{typeByte:X2}");
-			_decodingResult.AddResult("activeEnergyExportT2", ApplyEnergyScaling(_parser.GetUInt32()), Unit.KiloWattHour);
-
-			// Bytes 24–25: error code
-			typeByte = _parser.GetUInt8();
-			if (typeByte != 0xFF)
-				throw new PayloadParsingException(
-					$"Expected type 0xFF (Error code), got 0x{typeByte:X2}");
-			byte errorCode = _parser.GetUInt8();
-			_decodingResult.AddResult("errorCode", errorCode);
-			_decodingResult.AddResult("errorCodeDescription", DecodeErrorCode(errorCode));
+			// Remaining bytes: Type-Length-Value fields until CRC byte (8 bits remaining)
+			while (_parser.RemainingBits > 8)
+			{
+				byte typeId = _parser.GetUInt8();
+				DecodeField(typeId);
+			}
 		}
 
 		// ─────────────────────────────────────────────
-		// Error code bit fields (from documentation)
+		// TLV field decoder
+		// ─────────────────────────────────────────────
+
+		private void DecodeField(byte typeId)
+		{
+			switch (typeId)
+			{
+				// ── Index / timestamps ──────────────────────────────────────
+				case 0x00:
+					_decodingResult.AddResult("dataLoggerIndex", _parser.GetUInt32(), Unit.Count);
+					break;
+				case 0x01:
+					_decodingResult.AddResult("timestamp", _parser.GetUnixEpoch());
+					break;
+				case 0x02:
+					_decodingResult.AddResult("timestampPrevious", _parser.GetUnixEpoch());
+					break;
+
+				// ── Active energy import (Wh) ───────────────────────────────
+				case 0x03:
+					_decodingResult.AddResult("activeEnergyImportT1Wh", _parser.GetUInt32(), Unit.WattHour);
+					break;
+				case 0x04:
+					_decodingResult.AddResult("activeEnergyImportT2Wh", _parser.GetUInt32(), Unit.WattHour);
+					break;
+
+				// ── Active energy export (Wh) ───────────────────────────────
+				case 0x05:
+					_decodingResult.AddResult("activeEnergyExportT1Wh", _parser.GetUInt32(), Unit.WattHour);
+					break;
+				case 0x06:
+					_decodingResult.AddResult("activeEnergyExportT2Wh", _parser.GetUInt32(), Unit.WattHour);
+					break;
+
+				// ── Reactive energy import (varh) ───────────────────────────
+				case 0x07:
+					_decodingResult.AddResult("reactiveEnergyImportT1varh", _parser.GetUInt32(), Unit.Varh);
+					break;
+				case 0x08:
+					_decodingResult.AddResult("reactiveEnergyImportT2varh", _parser.GetUInt32(), Unit.Varh);
+					break;
+
+				// ── Reactive energy export (varh) ───────────────────────────
+				case 0x09:
+					_decodingResult.AddResult("reactiveEnergyExportT1varh", _parser.GetUInt32(), Unit.Varh);
+					break;
+				case 0x0A:
+					_decodingResult.AddResult("reactiveEnergyExportT2varh", _parser.GetUInt32(), Unit.Varh);
+					break;
+
+				// ── Active power (W) ────────────────────────────────────────
+				case 0x0B:
+					_decodingResult.AddResult("activePowerL123", _parser.GetInt32(), Unit.Watt);
+					break;
+				case 0x0C:
+					_decodingResult.AddResult("activePowerL1", _parser.GetInt32(), Unit.Watt);
+					break;
+				case 0x0D:
+					_decodingResult.AddResult("activePowerL2", _parser.GetInt32(), Unit.Watt);
+					break;
+				case 0x0E:
+					_decodingResult.AddResult("activePowerL3", _parser.GetInt32(), Unit.Watt);
+					break;
+
+				// ── Current (mA) ────────────────────────────────────────────
+				case 0x0F:
+					_decodingResult.AddResult("currentL123", _parser.GetInt32(), Unit.Milliampere);
+					break;
+				case 0x10:
+					_decodingResult.AddResult("currentL1", _parser.GetInt32(), Unit.Milliampere);
+					break;
+				case 0x11:
+					_decodingResult.AddResult("currentL2", _parser.GetInt32(), Unit.Milliampere);
+					break;
+				case 0x12:
+					_decodingResult.AddResult("currentL3", _parser.GetInt32(), Unit.Milliampere);
+					break;
+				case 0x13:
+					// Reserved for future applications
+					break;
+
+				// ── Voltage (V/10 → V) ──────────────────────────────────────
+				case 0x14:
+					_decodingResult.AddResult("voltageL1N", Math.Round(_parser.GetInt32() * 0.1, 1), Unit.Volt);
+					break;
+				case 0x15:
+					_decodingResult.AddResult("voltageL2N", Math.Round(_parser.GetInt32() * 0.1, 1), Unit.Volt);
+					break;
+				case 0x16:
+					_decodingResult.AddResult("voltageL3N", Math.Round(_parser.GetInt32() * 0.1, 1), Unit.Volt);
+					break;
+
+				// ── Power factor (cos × 0.01) ───────────────────────────────
+				case 0x17:
+					_decodingResult.AddResult("powerFactorL1", Math.Round(_parser.GetInt8() * 0.01, 2), Unit.Cos);
+					break;
+				case 0x18:
+					_decodingResult.AddResult("powerFactorL2", Math.Round(_parser.GetInt8() * 0.01, 2), Unit.Cos);
+					break;
+				case 0x19:
+					_decodingResult.AddResult("powerFactorL3", Math.Round(_parser.GetInt8() * 0.01, 2), Unit.Cos);
+					break;
+
+				// ── Frequency (Hz × 0.1) ────────────────────────────────────
+				case 0x1A:
+					_decodingResult.AddResult("frequency", Math.Round(_parser.GetInt16() * 0.1, 1), Unit.Hertz);
+					break;
+
+				// ── Average power (W) ───────────────────────────────────────
+				case 0x1B:
+					// Reserved for future applications
+					break;
+
+				// ── Active energy import (kWh) ──────────────────────────────
+				case 0x1C:
+					_decodingResult.AddResult("activeEnergyImportT1kWh", _parser.GetUInt32(), Unit.KiloWattHour);
+					break;
+				case 0x1D:
+					_decodingResult.AddResult("activeEnergyImportT2kWh", _parser.GetUInt32(), Unit.KiloWattHour);
+					break;
+
+				// ── Active energy export (kWh) ──────────────────────────────
+				case 0x1E:
+					_decodingResult.AddResult("activeEnergyExportT1kWh", _parser.GetUInt32(), Unit.KiloWattHour);
+					break;
+				case 0x1F:
+					_decodingResult.AddResult("activeEnergyExportT2kWh", _parser.GetUInt32(), Unit.KiloWattHour);
+					break;
+
+				// ── Reactive energy import (kvarh) ──────────────────────────
+				case 0x20:
+					_decodingResult.AddResult("reactiveEnergyImportT1kvarh", _parser.GetUInt32(), Unit.Kvarh);
+					break;
+				case 0x21:
+					_decodingResult.AddResult("reactiveEnergyImportT2kvarh", _parser.GetUInt32(), Unit.Kvarh);
+					break;
+
+				// ── Reactive energy export (kvarh) ──────────────────────────
+				case 0x22:
+					_decodingResult.AddResult("reactiveEnergyExportT1kvarh", _parser.GetUInt32(), Unit.Kvarh);
+					break;
+				case 0x23:
+					_decodingResult.AddResult("reactiveEnergyExportT2kvarh", _parser.GetUInt32(), Unit.Kvarh);
+					break;
+
+				// ── Active energy import 64-bit (Wh) ───────────────────────
+				case 0x24:
+					_decodingResult.AddResult("activeEnergyImportT1_64", _parser.GetUInt64(), Unit.WattHour);
+					break;
+				case 0x25:
+					_decodingResult.AddResult("activeEnergyImportT2_64", _parser.GetUInt64(), Unit.WattHour);
+					break;
+
+				// ── Active energy export 64-bit (Wh) ───────────────────────
+				case 0x26:
+					_decodingResult.AddResult("activeEnergyExportT1_64", _parser.GetUInt64(), Unit.WattHour);
+					break;
+				case 0x27:
+					_decodingResult.AddResult("activeEnergyExportT2_64", _parser.GetUInt64(), Unit.WattHour);
+					break;
+
+				// ── Reactive energy import 64-bit (varh) ───────────────────
+				case 0x28:
+					_decodingResult.AddResult("reactiveEnergyImportT1_64", _parser.GetUInt64(), Unit.Varh);
+					break;
+				case 0x29:
+					_decodingResult.AddResult("reactiveEnergyImportT2_64", _parser.GetUInt64(), Unit.Varh);
+					break;
+
+				// ── Reactive energy export 64-bit (varh) ───────────────────
+				case 0x2A:
+					_decodingResult.AddResult("reactiveEnergyExportT1_64", _parser.GetUInt64(), Unit.Varh);
+					break;
+				case 0x2B:
+					_decodingResult.AddResult("reactiveEnergyExportT2_64", _parser.GetUInt64(), Unit.Varh);
+					break;
+
+				// ── Meter info fields ───────────────────────────────────────
+				case 0xF0:
+				case 0xFF:
+					_decodingResult.AddResult("errorCode", DecodeErrorCode(_parser.GetUInt8()));
+					break;
+				case 0xF1:
+					_decodingResult.AddResult("serialNumber", GetMeterSerial());
+					break;
+				case 0xF2:
+					_decodingResult.AddResult("factoryNumber", GetMeterSerial());
+					break;
+				case 0xF3:
+					_decodingResult.AddResult("ctPrimary", _parser.GetUInt16(), Unit.Count);
+					break;
+				case 0xF4:
+					_decodingResult.AddResult("ctSecondary", _parser.GetUInt16(), Unit.Count);
+					break;
+				case 0xF5:
+					_decodingResult.AddResult("vtPrimary", _parser.GetUInt16(), Unit.Count);
+					break;
+				case 0xF6:
+					_decodingResult.AddResult("vtSecondary", _parser.GetUInt16(), Unit.Count);
+					break;
+				case 0xF7:
+					_decodingResult.AddResult("meterType", _parser.GetUInt8(), Unit.Count);
+					break;
+				case 0xF8:
+					_decodingResult.AddResult("midYearOfCertification", GetBCD(4));
+					break;
+				case 0xF9:
+					_decodingResult.AddResult("yearOfManufacture", GetBCD(4));
+					break;
+				case 0xFA:
+					_decodingResult.AddResult("firmwareVersion", GetASCII(4));
+					break;
+				case 0xFB:
+					_decodingResult.AddResult("midMessVersion", GetASCII(4));
+					break;
+				case 0xFC:
+					_decodingResult.AddResult("manufacturer", GetASCII(4));
+					break;
+				case 0xFD:
+					_decodingResult.AddResult("hardwareIndex", GetASCII(4));
+					break;
+				case 0xFE:
+					_decodingResult.AddResult("systemTime", _parser.GetUnixEpoch());
+					break;
+
+				default:
+					throw new PayloadParsingException(
+						$"Unknown type ID: 0x{typeId:X2} — remaining payload cannot be decoded.");
+			}
+		}
+
+		// ─────────────────────────────────────────────
+		// Error code bit fields (from documentation).
 		//
 		// Bit 0  Time set
 		// Bit 1  CT ratio adjusted
@@ -88,6 +290,8 @@ namespace IoTPayloadDecoder.Decoders.EMUProfessionalII
 		// Bit 5  Voltage interruption
 		// Bit 6  Time not valid or not synchronized
 		// Bit 7  Logbook full
+		//
+		// One payload can contain one or several error codes.
 		// ─────────────────────────────────────────────
 
 		private string DecodeErrorCode(byte errorCode)
@@ -95,30 +299,68 @@ namespace IoTPayloadDecoder.Decoders.EMUProfessionalII
 			List<string> description = new List<string>();
 
 			if ((errorCode & 0x01) != 0)
-				description.Add("errTimeSet");
+				description.Add("Time set");
 
 			if ((errorCode & 0x02) != 0)
-				description.Add("errCTRatioAdjusted");
+				description.Add("Current transformer ratio adjusted");
 
 			if ((errorCode & 0x04) != 0)
-				description.Add("errVTRatioAdjusted");
+				description.Add("Voltage transformer ratio adjusted");
 
 			if ((errorCode & 0x08) != 0)
-				description.Add("errImpulseLengthAdjusted");
+				description.Add("Impulse length adjusted");
 
 			if ((errorCode & 0x10) != 0)
-				description.Add("errImpulseRatioAdjusted");
+				description.Add("Impulse ratio adjusted");
 
 			if ((errorCode & 0x20) != 0)
-				description.Add("errVoltageInterruption");
+				description.Add("Voltage interruption");
 
 			if ((errorCode & 0x40) != 0)
-				description.Add("errTimeNotSynchronized");
+				description.Add("Time not valid or not synchronized");
 
 			if ((errorCode & 0x80) != 0)
-				description.Add("errLogbookFull");
+				description.Add("Logbook full");
 
 			return string.Join(", ", description);
+		}
+
+		// ─────────────────────────────────────────────
+		// Meter serial: 4 bytes read LSB-first, displayed as 8 hex digits MSB-first.
+		// ─────────────────────────────────────────────
+		private string GetMeterSerial()
+		{
+			byte b0 = _parser.GetUInt8();
+			byte b1 = _parser.GetUInt8();
+			byte b2 = _parser.GetUInt8();
+			byte b3 = _parser.GetUInt8();
+			return $"{b3:x2}{b2:x2}{b1:x2}{b0:x2}";
+		}
+
+		// ─────────────────────────────────────────────
+		// BCD: concatenate the decimal representations of each byte.
+		// ─────────────────────────────────────────────
+		private string GetBCD(int byteCount)
+		{
+			var sb = new StringBuilder(byteCount);
+			for (int k = 0; k < byteCount; k++)
+				sb.Append(_parser.GetUInt8());
+			return sb.ToString();
+		}
+
+		// ─────────────────────────────────────────────
+		// ASCII: read bytes, skip null terminators.
+		// ─────────────────────────────────────────────
+		private string GetASCII(int byteCount)
+		{
+			var sb = new StringBuilder(byteCount);
+			for (int k = 0; k < byteCount; k++)
+			{
+				byte b = _parser.GetUInt8();
+				if (b != 0x00)
+					sb.Append((char)b);
+			}
+			return sb.ToString();
 		}
 
 		// ─────────────────────────────────────────────
@@ -156,7 +398,8 @@ namespace IoTPayloadDecoder.Decoders.EMUProfessionalII
 		};
 
 		// ─────────────────────────────────────────────
-		// Calculates a CRC-8 checksum using the polynomial x^8 + x^2 + x^1 + x^0 (CRC-8/SMBUS).
+		// Calculates a CRC-8 checksum using the polynomial
+		// x^8 + x^2 + x^1 + x^0 (CRC-8/SMBUS).
 		// ─────────────────────────────────────────────
 		private static byte Crc8(byte[] data, int length)
 		{
@@ -164,14 +407,6 @@ namespace IoTPayloadDecoder.Decoders.EMUProfessionalII
 			for (int j = 0; j < length; j++)
 				crc = _crc8Table[crc ^ data[j]];
 			return crc;
-		}
-
-		// ─────────────────────────────────────────────
-		// Raw value is in Wh; divide by 1000 to convert to kWh.
-		// ─────────────────────────────────────────────
-		private static double ApplyEnergyScaling(uint raw)
-		{
-			return raw * 0.001;
 		}
 	}
 }

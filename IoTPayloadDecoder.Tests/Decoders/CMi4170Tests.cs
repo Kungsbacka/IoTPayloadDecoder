@@ -23,7 +23,7 @@ namespace IoTPayloadDecoder.Tests.Decoders
 			Assert.Equal(65.0, result.forwardTemperature); // 4100 = 65
 			Assert.Equal(65.0, result.returnTemperature); // 4100 = 65
 			Assert.Equal("21957374", result.meterId); // 74739521 = 21957374
-			Assert.Equal(16, result.errorFlags); //00 = 0x00
+			Assert.Equal("Error in flow measurement system", result.errorFlags); //10 = 0x10
 			Assert.Equal(0, result.warnings.Length);
 		}
 
@@ -35,8 +35,8 @@ namespace IoTPayloadDecoder.Tests.Decoders
 			var decoder = new DataDecoder();
 			var result = decoder.Decode(payload, false);
 
-			Assert.Equal(1.5, result.energy.value); // 1500 Wh = 1.5 kWh
-			Assert.Equal("kWh", result.energy.unit);
+			Assert.Equal(1500, result.energy.value);
+			Assert.Equal("Wh", result.energy.unit);
 		}
 
 		[Fact]
@@ -47,8 +47,8 @@ namespace IoTPayloadDecoder.Tests.Decoders
 			var decoder = new DataDecoder();
 			var result = decoder.Decode(payload, false);
 
-			Assert.Equal(10 * 1500 / 3.6, result.energy.value); // 10 * 1500 MJ / 3.6 = 4166.67 kWh
-			Assert.Equal("kWh", result.energy.unit);
+			Assert.Equal(15000, result.energy.value);
+			Assert.Equal("MJ", result.energy.unit);
 		}
 
 		[Fact]
@@ -59,8 +59,8 @@ namespace IoTPayloadDecoder.Tests.Decoders
 			var decoder = new DataDecoder();
 			var result = decoder.Decode(payload, false);
 
-			Assert.Equal(1500 * 1.1622, result.energy.value); // 1500 MCal * 1.1622 = 1743.33 kWh
-			Assert.Equal("kWh", result.energy.unit);
+			Assert.Equal(1500, result.energy.value);
+			Assert.Equal("MCal", result.energy.unit);
 		}
 
 		[Fact]
@@ -71,7 +71,7 @@ namespace IoTPayloadDecoder.Tests.Decoders
 			var decoder = new DataDecoder();
 			var result = decoder.Decode(payload, false);
 
-			Assert.Equal(234560, result.volume.value); // 10 * 23456 m3 = 234560 m3
+			Assert.Equal(234560, result.volume.value);
 			Assert.Equal("m³", result.volume.unit);
 		}
 
@@ -83,7 +83,7 @@ namespace IoTPayloadDecoder.Tests.Decoders
 			var decoder = new DataDecoder();
 			var result = decoder.Decode(payload, false);
 
-			Assert.Equal(2.3456, result.volume.value); // 0.0001 * 23456 m3 = 2.3456 m3
+			Assert.Equal(2.3456, result.volume.value);
 			Assert.Equal("m³", result.volume.unit);
 		}
 
@@ -95,7 +95,7 @@ namespace IoTPayloadDecoder.Tests.Decoders
 			var decoder = new DataDecoder();
 			var result = decoder.Decode(payload, false);
 
-			Assert.Equal(25000.0, result.power.value); // 10 * 2500 W = 25000 W
+			Assert.Equal(25000.0, result.power.value);
 			Assert.Equal("W", result.power.unit);
 		}
 
@@ -107,8 +107,8 @@ namespace IoTPayloadDecoder.Tests.Decoders
 			var decoder = new DataDecoder();
 			var result = decoder.Decode(payload, false);
 
-			Assert.Equal(25000000.0, result.power.value); // 10 * 2500 kW * 1000 = 25000000 W
-			Assert.Equal("W", result.power.unit);
+			Assert.Equal(25000.0, result.power.value); 
+			Assert.Equal("kW", result.power.unit);
 		}
 
 		[Fact]
@@ -119,7 +119,7 @@ namespace IoTPayloadDecoder.Tests.Decoders
 			var decoder = new DataDecoder();
 			var result = decoder.Decode(payload, false);
 
-			Assert.Equal(4.5, result.flow.value); // 0.01 * 450 m³/h = 4.5 m³/h
+			Assert.Equal(4.5, result.flow.value);
 			Assert.Equal("m³/h", result.flow.unit);
 		}
 
@@ -131,7 +131,7 @@ namespace IoTPayloadDecoder.Tests.Decoders
 			var decoder = new DataDecoder();
 			var result = decoder.Decode(payload, false);
 
-			Assert.Equal(65, result.forwardTemperature.value); // 1 * 65 °C = 65 °C
+			Assert.Equal(65, result.forwardTemperature.value);
 			Assert.Equal("°C", result.forwardTemperature.unit);
 		}
 
@@ -144,7 +144,7 @@ namespace IoTPayloadDecoder.Tests.Decoders
 			var decoder = new DataDecoder();
 			var result = decoder.Decode(payload, false);
 
-			Assert.Equal(6.5, result.returnTemperature.value); // 0.1 * 65 °C = 6.5 °C
+			Assert.Equal(6.5, result.returnTemperature.value);
 			Assert.Equal("°C", result.returnTemperature.unit);
 		}
 
@@ -157,19 +157,17 @@ namespace IoTPayloadDecoder.Tests.Decoders
 			var result = decoder.Decode(payload, false);
 
 			Assert.Equal("21957374", result.meterId.value);
-			Assert.Equal("count", result.meterId.unit);
 		}
 
 		[Fact]
 		public void DecodeStandardFormat_ReturnsExpectedErrorFlags()
 		{
-			// 01FD1700 = No error flags
-			string payload = "2404FB0DDC0500000412A05B0000022FC409023CC201025B4100025E41000C787473952101FD1710";
+			// 01FD1781 = Error flags 0x01 + 0x80
+			string payload = "2404FB0DDC0500000412A05B0000022FC409023CC201025B4100025E41000C787473952101FD1781";
 			var decoder = new DataDecoder();
 			var result = decoder.Decode(payload, false);
 
-			Assert.Equal(16, result.errorFlags.value);
-			Assert.Equal("count", result.errorFlags.unit);
+			Assert.Equal("Temperature sensor 1 cable break, Low battery", result.errorFlags.value); 
 		}
 
 		[Fact]
