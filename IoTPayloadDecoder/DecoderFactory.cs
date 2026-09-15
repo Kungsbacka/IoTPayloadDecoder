@@ -66,6 +66,10 @@ namespace IoTPayloadDecoder
                 {
                     case 100:
                         return new Decoders.QalcosonicW1.Port100RegularDataDecoder();
+                    case 101:
+                        return new Decoders.QalcosonicW1.Port101ConfigParamsDecoder();
+                    case 103:
+                        return new Decoders.QalcosonicW1.Port103DeviceAlarmDecoder();
                     default:
                         throw new ArgumentException("No decoder found for port");
                 }

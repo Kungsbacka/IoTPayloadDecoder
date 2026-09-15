@@ -10,9 +10,62 @@ namespace IoTPayloadDecoder.Tests.Decoders
         private readonly IPayloadDecoder _port100RegularDataDecoder =
             DecoderFactory.Create(DeviceModel.QalcosonicW1, 100);
 
+        private readonly IPayloadDecoder _port101ConfigParamsDecoder =
+            DecoderFactory.Create(DeviceModel.QalcosonicW1, 101);
+
+        private readonly IPayloadDecoder _port103DeviceAlarmDecoder =
+            DecoderFactory.Create(DeviceModel.QalcosonicW1, 103);
+
         public QalcosonicW1Tests(ITestOutputHelper output)
         {
             _output = output;
+        }
+
+        [Fact]
+        public void DecodeBasicPayload()
+        {
+            var payload = "012290456ab0886500000000000000001da1a6c05120000c00000000000000000000000000a9640000000000000000000000";
+
+            dynamic result = _port100RegularDataDecoder.Decode(payload, compact: false);
+
+            JsonTestOutput.PrintResult(_output, result);
+        }
+
+        [Fact]
+        public void DecodeAlarmPayload()
+        {
+            var payload = "774f3b6a00";
+
+            dynamic result = _port103DeviceAlarmDecoder.Decode(payload, compact: false);
+
+            JsonTestOutput.PrintResult(_output, result);
+        }
+        [Fact]
+        public void DecodeAlarmPayload2()
+        {
+            var payload = "cb23f9b6edc29e0bd933e46dfce8fe0d";
+
+            dynamic result = _port103DeviceAlarmDecoder.Decode(payload, compact: false);
+
+            JsonTestOutput.PrintResult(_output, result);
+        }
+        [Fact]
+        public void DecodeAlarmPayload3()
+        {
+            var payload = "316117b52365e771bd1e17603515726c";
+
+            dynamic result = _port103DeviceAlarmDecoder.Decode(payload, compact: false);
+
+            JsonTestOutput.PrintResult(_output, result);
+        }
+        [Fact]
+        public void DecodeAlarmPayload4()
+        {
+            var payload = "5424cbf11952fa9d086f180bd1439bd1";
+
+            dynamic result = _port103DeviceAlarmDecoder.Decode(payload, compact: false);
+
+            JsonTestOutput.PrintResult(_output, result);
         }
 
         [Fact]
