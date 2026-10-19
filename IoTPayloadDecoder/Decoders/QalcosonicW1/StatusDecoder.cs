@@ -1,51 +1,73 @@
 ﻿using System.Collections.Generic;
 
-internal static class StatusDecoder
+namespace IoTPayloadDecoder.Decoders.QalcosonicW1
 {
-    public static string[] Decode(byte status)
+    internal static class StatusDecoder
     {
-        var statuses = new List<string>();
-
-        if (status == 0x00)
+        public static string DecodeStatusText(byte status)
         {
-            return new[] { "No error" };
+            var flags = DecodeStatusFlags(status);
+
+            if (flags.Length == 1)
+            {
+                return flags[0];
+            }
+
+            return string.Join(" + ", flags);
         }
 
-        byte alarmStatus = (byte)(status & 0xF0);
-
-        switch (alarmStatus)
+        public static string[] DecodeStatusFlags(byte status)
         {
-            case 0x10:
-                statuses.Add("Empty pipe");
-                break;
+            var statuses = new List<string>();
 
-            case 0x30:
-                statuses.Add("Leakage");
-                break;
+            if (status == 0x00)
+            {
+                return new[] { "No error" };
+            }
 
-            case 0x70:
-                statuses.Add("Negative flow / Backflow");
-                break;
+            byte alarmStatus = (byte)(status & 0xF0);
 
-            case 0x90:
-                statuses.Add("Freeze");
-                break;
+            switch (alarmStatus)
+            {
+                case 0x10:
+                    statuses.Add("Empty pipe");
+                    break;
 
-            case 0xB0:
-                statuses.Add("Burst");
-                break;
+                case 0x30:
+                    statuses.Add("Leakage");
+                    break;
+
+                case 0x70:
+                    statuses.Add("Backflow");
+                    break;
+
+                case 0x90:
+                    statuses.Add("Freeze");
+                    break;
+
+                case 0xB0:
+                    statuses.Add("Burst");
+                    break;
+            }
+
+            if ((status & 0x08) != 0)
+            {
+                statuses.Add("Permanent error");
+            }
+
+            if ((status & 0x04) != 0)
+            {
+                statuses.Add("Low battery");
+            }
+
+            if (statuses.Count == 0)
+            {
+                statuses.Add(string.Format(
+                    "Unknown status 0x{0:X2}",
+                    status));
+            }
+
+            return statuses.ToArray();
         }
-
-        if ((status & 0x08) != 0)
-        {
-            statuses.Add("Permanent error");
-        }
-
-        if ((status & 0x04) != 0)
-        {
-            statuses.Add("Low battery");
-        }
-
-        return statuses.ToArray();
     }
 }
